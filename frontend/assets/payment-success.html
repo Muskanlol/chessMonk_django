@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ChessMonk — Payment</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --crimson:#dc143c;--crimson-bright:#ff1a4a;--crimson-dark:#8b0000;
+  --crimson-glow:rgba(220,20,60,0.6);--gold:#c9a84c;--gold-bright:#ffd700;
+  --gold-glow:rgba(201,168,76,0.5);--glass-bg:rgba(8,4,12,0.82);
+  --glass-border:rgba(220,20,60,0.28);--black-deep:#020005;
+  --text-primary:#f0e8d0;--text-secondary:#b09878;--text-dim:rgba(176,152,120,0.6);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Rajdhani',sans-serif;background:var(--black-deep);
+  color:var(--text-primary);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:32px 16px;position:relative;overflow:hidden;
+}
+.bg-canvas{position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%,rgba(100,0,20,0.5) 0%,transparent 65%),
+    radial-gradient(ellipse 40% 30% at 20% 80%,rgba(80,0,15,0.3) 0%,transparent 60%),
+    linear-gradient(180deg,#06000e 0%,#020005 60%,#040008 100%);}
+.mist{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E") repeat;
+  animation:mistDrift 30s linear infinite;opacity:0.5;}
+@keyframes mistDrift{0%,100%{transform:translate(0,0);}50%{transform:translate(-3%,-2%);}}
+.embers{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+.ember{position:absolute;width:2px;height:2px;border-radius:50%;
+  animation:floatUp var(--dur) ease-in infinite;animation-delay:var(--delay);
+  left:var(--left);bottom:-10px;opacity:0;}
+.ember.red{background:#ff1a4a;box-shadow:0 0 4px #ff1a4a;}
+.ember.gold{background:#ffaa00;box-shadow:0 0 4px #ffaa00;width:1.5px;height:1.5px;}
+@keyframes floatUp{
+  0%{opacity:0;transform:translateY(0) scale(1);}10%{opacity:1;}80%{opacity:.6;}
+  100%{opacity:0;transform:translateY(-100vh) translateX(var(--drift)) scale(.3);}
+}
+.screen{position:relative;z-index:10;width:100%;max-width:500px;}
+.card{
+  width:100%;background:var(--glass-bg);
+  backdrop-filter:blur(24px) saturate(1.6);
+  -webkit-backdrop-filter:blur(24px) saturate(1.6);
+  border:1px solid var(--glass-border);
+  position:relative;overflow:hidden;
+  box-shadow:0 0 50px rgba(220,20,60,0.12),0 30px 90px rgba(0,0,0,0.85),
+             inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.card::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(220,20,60,0.07) 0%,transparent 50%,rgba(201,168,76,0.04) 100%);
+  pointer-events:none;}
+.rune-pulse{position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--crimson),var(--gold),var(--crimson),transparent);
+  animation:runeGlow 3s ease infinite;opacity:0;}
+@keyframes runeGlow{0%,100%{opacity:0;transform:scaleX(.3);}50%{opacity:.9;transform:scaleX(1);}}
+.rc{position:absolute;width:18px;height:18px;pointer-events:none;z-index:3;}
+.rc.tl{top:0;left:0;border-top:2px solid var(--gold);border-left:2px solid var(--gold);}
+.rc.tr{top:0;right:0;border-top:2px solid var(--gold);border-right:2px solid var(--gold);}
+.rc.bl{bottom:0;left:0;border-bottom:2px solid var(--gold);border-left:2px solid var(--gold);}
+.rc.br{bottom:0;right:0;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold);}
+#orderScreen{padding:2.2rem;display:block;}
+.order-icon{font-size:2.6rem;text-align:center;margin-bottom:0.8rem;
+  filter:drop-shadow(0 0 16px var(--crimson-glow));}
+.order-title{font-family:'Cinzel Decorative',serif;font-size:1.05rem;font-weight:700;
+  text-align:center;color:var(--text-primary);margin-bottom:0.3rem;letter-spacing:0.07em;}
+.order-sub{font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.32em;
+  text-transform:uppercase;color:var(--text-dim);text-align:center;margin-bottom:1.6rem;}
+.order-rows{margin-bottom:1.4rem;}
+.order-row{display:flex;justify-content:space-between;align-items:center;
+  padding:0.65rem 0;border-bottom:1px solid rgba(220,20,60,0.1);}
+.order-row:last-child{border-bottom:none;}
+.or-label{font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.24em;
+  text-transform:uppercase;color:var(--text-dim);}
+.or-val{font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:600;
+  color:var(--text-primary);text-align:right;max-width:300px;}
+.or-val.gold{color:var(--gold-bright);text-shadow:0 0 10px var(--gold-glow);}
+.price-wrap{text-align:center;margin-bottom:1.6rem;}
+.price-amount{font-family:'Rajdhani',sans-serif;font-size:3rem;font-weight:700;
+  color:var(--crimson-bright);text-shadow:0 0 24px var(--crimson-glow);line-height:1;}
+.btn-pay{
+  width:100%;padding:1rem;font-family:'Cinzel',serif;font-size:0.74rem;font-weight:700;
+  letter-spacing:0.35em;text-transform:uppercase;cursor:pointer;border:none;
+  position:relative;overflow:hidden;transition:all 0.3s;
+  background:linear-gradient(135deg,var(--crimson-dark),var(--crimson),var(--crimson-dark));
+  color:var(--text-primary);
+  box-shadow:0 0 28px rgba(220,20,60,0.38),inset 0 1px 0 rgba(255,255,255,0.08);
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+}
+.btn-pay:hover{
+  background:linear-gradient(135deg,var(--crimson),var(--crimson-bright),var(--crimson));
+  box-shadow:0 0 50px rgba(220,20,60,0.65);transform:translateY(-2px);
+}
+.btn-pay::before{content:'';position:absolute;top:50%;left:-100%;width:60%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.85),transparent);
+  transform:translateY(-50%) skewX(-20deg);transition:left 0.5s;}
+.btn-pay:hover::before{left:150%;}
+.err-msg{padding:0.8rem 1rem;background:rgba(220,20,60,0.1);
+  border-left:3px solid var(--crimson-bright);font-size:0.82rem;
+  color:var(--text-secondary);margin-top:1rem;display:none;
+  clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);}
+.err-msg.show{display:block;}
+
+#loadingScreen{padding:3.5rem 2rem;text-align:center;display:none;}
+.spinner{
+  width:64px;height:64px;margin:0 auto 1.6rem;
+  border:3px solid rgba(220,20,60,0.15);
+  border-top-color:var(--crimson-bright);
+  border-right-color:var(--gold);
+  border-radius:50%;
+  animation:spin 0.9s linear infinite;
+  box-shadow:0 0 20px rgba(220,20,60,0.2);
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.processing-title{font-family:'Cinzel Decorative',serif;font-size:1.1rem;font-weight:700;
+  color:var(--text-primary);margin-bottom:0.5rem;letter-spacing:0.04em;}
+.processing-sub{font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.3em;
+  text-transform:uppercase;color:var(--text-dim);}
+
+#successScreen{padding:2.5rem 2rem;text-align:center;display:none;}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+.check-ring{
+  width:80px;height:80px;border-radius:50%;margin:0 auto 1.4rem;
+  background:rgba(20,83,45,0.55);border:2px solid rgba(34,197,94,0.4);
+  display:flex;align-items:center;justify-content:center;
+  animation:checkGlow 2.5s ease infinite;
+}
+@keyframes checkGlow{
+  0%,100%{box-shadow:0 0 18px rgba(34,197,94,0.2);}
+  50%{box-shadow:0 0 40px rgba(34,197,94,0.5),0 0 70px rgba(34,197,94,0.15);}
+}
+.success-title{font-family:'Cinzel Decorative',serif;font-size:1.4rem;font-weight:700;
+  color:var(--text-primary);margin-bottom:0.5rem;letter-spacing:0.04em;}
+.success-sub{font-size:0.88rem;color:var(--text-dim);letter-spacing:0.04em;margin-bottom:2rem;}
+.receipt{width:100%;background:rgba(201,168,76,0.05);
+  border:1px solid rgba(201,168,76,0.2);margin-bottom:2rem;
+  text-align:left;position:relative;}
+.receipt::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.rcp-row{display:flex;justify-content:space-between;align-items:center;
+  padding:0.65rem 1.2rem;border-bottom:1px solid rgba(201,168,76,0.1);font-size:0.85rem;}
+.rcp-row:last-child{border-bottom:none;}
+.rcp-label{font-family:'Cinzel',serif;font-size:0.56rem;letter-spacing:0.22em;
+  text-transform:uppercase;color:var(--text-dim);}
+.rcp-val{font-family:'Rajdhani',sans-serif;font-weight:600;color:var(--text-primary);}
+.rcp-val.gold{color:var(--gold-bright);}
+.btn-view-bookings{
+  display:block;width:100%;padding:0.95rem;margin-bottom:0.75rem;
+  font-family:'Cinzel',serif;font-size:0.7rem;font-weight:700;letter-spacing:0.3em;
+  text-transform:uppercase;cursor:pointer;border:none;
+  position:relative;overflow:hidden;transition:all 0.3s;
+  background:linear-gradient(135deg,var(--crimson-dark),var(--crimson));
+  color:var(--text-primary);box-shadow:0 0 28px rgba(220,20,60,0.35);
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+}
+.btn-view-bookings:hover{
+  background:linear-gradient(135deg,var(--crimson),var(--crimson-bright));
+  box-shadow:0 0 48px rgba(220,20,60,0.6);transform:translateY(-2px);
+}
+.btn-view-bookings::before{content:'';position:absolute;top:50%;left:-100%;width:60%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.85),transparent);
+  transform:translateY(-50%) skewX(-20deg);transition:left 0.5s;}
+.btn-view-bookings:hover::before{left:150%;}
+.btn-dashboard{
+  display:block;width:100%;padding:0.95rem;
+  font-family:'Cinzel',serif;font-size:0.7rem;font-weight:700;letter-spacing:0.3em;
+  text-transform:uppercase;cursor:pointer;
+  background:transparent;border:1px solid rgba(201,168,76,0.35);
+  color:var(--text-secondary);
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);
+  transition:all 0.3s;
+}
+.btn-dashboard:hover{
+  background:rgba(201,168,76,0.1);border-color:var(--gold);
+  color:var(--gold-bright);box-shadow:0 0 22px var(--gold-glow);
+}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:rgba(220,20,60,0.3);}
+</style>
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+<div class="mist"></div>
+<div class="embers" id="embers"></div>
+
+<div class="screen">
+  <div class="card" id="orderScreen">
+    <div class="rune-pulse"></div>
+    <div class="rc tl"></div><div class="rc tr"></div>
+    <div class="rc bl"></div><div class="rc br"></div>
+    <div class="order-icon">⚔</div>
+    <div class="order-title">Confirm Your Booking</div>
+    <div class="order-sub">⬦ Review and pay to seal the oath ⬦</div>
+    <div class="order-rows">
+      <div class="order-row">
+        <span class="or-label">Plan</span>
+        <span class="or-val gold" id="op-plan">—</span>
+      </div>
+      <div class="order-row">
+        <span class="or-label">Date(s)</span>
+        <span class="or-val" id="op-dates">—</span>
+      </div>
+      <div class="order-row">
+        <span class="or-label">Time</span>
+        <span class="or-val" id="op-time">—</span>
+      </div>
+      <div class="order-row">
+        <span class="or-label">Slots</span>
+        <span class="or-val" id="op-slots">—</span>
+      </div>
+    </div>
+    <div class="price-wrap">
+      <div class="price-amount" id="op-amount">₹ 0</div>
+    </div>
+    <button class="btn-pay" id="payBtn" onclick="openRazorpay()">⚔ &nbsp; Pay Now</button>
+    <div class="err-msg" id="errMsg"></div>
+  </div>
+  <div class="card" id="loadingScreen">
+    <div class="rune-pulse"></div>
+    <div class="rc tl"></div><div class="rc tr"></div>
+    <div class="rc bl"></div><div class="rc br"></div>
+    <div class="spinner"></div>
+    <div class="processing-title">Processing Payment</div>
+    <div class="processing-sub">⬦ Please do not refresh ⬦</div>
+  </div>
+  <div class="card" id="successScreen">
+    <div class="rune-pulse"></div>
+    <div class="rc tl"></div><div class="rc tr"></div>
+    <div class="rc bl"></div><div class="rc br"></div>
+    <div class="check-ring">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+           stroke="#22c55e" stroke-width="2.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <div class="success-title">Payment Successful</div>
+    <div class="success-sub">Your tournament booking has been confirmed</div>
+    <div class="receipt" id="receipt"></div>
+    <button class="btn-view-bookings" onclick="leavePage('view-bookings.html')">
+      ✦ &nbsp; View My Bookings
+    </button>
+    <button class="btn-dashboard" onclick="leavePage('dashboard.html')">
+      Go to Dashboard
+    </button>
+  </div>
+</div>
+
+<script>
+const BASE_URL = 'http://127.0.0.1:8000/api';
+const token = localStorage.getItem('access_token');
+if (!token) { window.location.href = 'index.html'; }
+
+(function() {
+  const ec = document.getElementById('embers');
+  for (let i = 0; i < 35; i++) {
+    const e = document.createElement('div');
+    e.className = 'ember ' + (Math.random() > 0.6 ? 'gold' : 'red');
+    e.style.setProperty('--dur',   (7  + Math.random() * 12) + 's');
+    e.style.setProperty('--delay', (Math.random() * 15) + 's');
+    e.style.setProperty('--left',  (Math.random() * 100) + '%');
+    e.style.setProperty('--drift', ((Math.random() - 0.5) * 100) + 'px');
+    ec.appendChild(e);
+  }
+})();
+
+function showScreen(name) {
+  document.getElementById('orderScreen').style.display   = name === 'order'   ? 'block' : 'none';
+  document.getElementById('loadingScreen').style.display = name === 'loading' ? 'block' : 'none';
+  document.getElementById('successScreen').style.display = name === 'success' ? 'block' : 'none';
+  if (name === 'success') {
+    document.getElementById('successScreen').style.animation = 'fadeInUp 0.6s ease forwards';
+  }
+}
+function buildReceipt(booking) {
+  const dateLabel = new Date((booking.date || '') + 'T00:00:00')
+    .toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const [h, m] = (booking.time_slot || '00:00').split(':');
+  const hr = parseInt(h);
+  const tLabel = `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
+  const planLabel =
+    booking.plan === 'monthly_premium' ? 'Monthly Premium' :
+    (booking.plan || '').charAt(0).toUpperCase() + (booking.plan || '').slice(1);
+
+  document.getElementById('receipt').innerHTML = `
+    <div class="rcp-row">
+      <span class="rcp-label">Booking ID</span>
+      <span class="rcp-val gold">#${booking.id}</span>
+    </div>
+    <div class="rcp-row">
+      <span class="rcp-label">Plan</span>
+      <span class="rcp-val">${planLabel}</span>
+    </div>
+    <div class="rcp-row">
+      <span class="rcp-label">Date</span>
+      <span class="rcp-val">${dateLabel}</span>
+    </div>
+    <div class="rcp-row">
+      <span class="rcp-label">Time</span>
+      <span class="rcp-val">${tLabel}</span>
+    </div>
+    <div class="rcp-row">
+      <span class="rcp-label">Amount Paid</span>
+      <span class="rcp-val gold">₹${parseFloat(booking.price || 0).toLocaleString('en-IN')}</span>
+    </div>
+    <div class="rcp-row">
+      <span class="rcp-label">Payment ID</span>
+      <span class="rcp-val" style="font-size:0.75rem">${booking.razorpay_payment_id || '—'}</span>
+    </div>
+  `;
+}
+
+function leavePage(page) {
+  localStorage.removeItem('success_confirmed');
+  localStorage.removeItem('confirmed_booking');
+  localStorage.removeItem('pending_booking');
+  window.location.href = page;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+  showScreen('order');
+}
+
+(function init() {
+  const confirmed = localStorage.getItem('success_confirmed');
+  if (confirmed) {
+    const storedBooking = localStorage.getItem('confirmed_booking');
+    if (storedBooking) {
+      buildReceipt(JSON.parse(storedBooking));
+    }
+    showScreen('success');
+    return; 
+  }
+
+  const pendingRaw = localStorage.getItem('pending_booking');
+  if (!pendingRaw) {
+    window.location.href = 'book-tournament.html';
+    return;
+  }
+
+  const pending = JSON.parse(pendingRaw);
+  if (!pending.plan) {
+    window.location.href = 'book-tournament.html';
+    return;
+  }
+
+  const PLAN_PRICES = { basic: 300, monthly_premium: 2400, custom: 300 };
+  const planLabel =
+    pending.plan === 'monthly_premium' ? 'Monthly Premium' :
+    pending.plan.charAt(0).toUpperCase() + pending.plan.slice(1);
+
+  const dateLabels = (pending.dates || []).map(ds =>
+    new Date(ds + 'T00:00:00')
+      .toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  ).join(', ');
+
+  const t      = pending.time_start || pending.time || '';
+  const tEnd   = pending.time_end   || '';
+  const tLabel = t ? `${t}${tEnd ? ' – ' + tEnd : ''}` : '—';
+
+  const displayAmt = pending.amount
+    ? (pending.amount / 100).toLocaleString('en-IN')
+    : (PLAN_PRICES[pending.plan] || 0).toLocaleString('en-IN');
+
+  document.getElementById('op-plan').textContent  = planLabel;
+  document.getElementById('op-dates').textContent = dateLabels || '—';
+  document.getElementById('op-time').textContent  = tLabel;
+  document.getElementById('op-slots').textContent = (pending.dates || []).length;
+  document.getElementById('op-amount').textContent = '₹ ' + displayAmt;
+
+  showScreen('order');
+})();
+
+function loadRazorpayScript() {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) { resolve(); return; }
+    const s  = document.createElement('script');
+    s.src    = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Razorpay script failed to load'));
+    document.body.appendChild(s);
+  });
+}
+
+async function openRazorpay() {
+  document.getElementById('payBtn').disabled = true;
+
+  try {
+    await loadRazorpayScript();
+  } catch(e) {
+    document.getElementById('payBtn').disabled = false;
+    return showError('Could not load payment gateway. Check your connection.');
+  }
+
+  const pendingRaw = localStorage.getItem('pending_booking');
+  if (!pendingRaw) return showError('Booking data missing. Please go back and try again.');
+  const pending = JSON.parse(pendingRaw);
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  let rzp;
+
+  const options = {
+    key:         pending.razorpay_key,
+    amount:      pending.amount,
+    currency:    'INR',
+    order_id:    pending.razorpay_order_id,
+    name:        'ChessMonk',
+    description: (pending.plan || '') + ' booking',
+    prefill:     { name: user.full_name || '', email: user.email || '' },
+    theme:       { color: '#dc143c' },
+    handler: function(response) {
+      rzp.close();
+      showScreen('loading');
+      confirmPayment(
+        response.razorpay_order_id,
+        response.razorpay_payment_id,
+        response.razorpay_signature
+      );
+    },
+
+    modal: {
+      ondismiss: function() {
+        document.getElementById('payBtn').disabled = false;
+        showScreen('order');
+      }
+    }
+  };
+
+  rzp = new Razorpay(options);
+  rzp.open();
+}
+
+async function confirmPayment(orderId, paymentId, signature) {
+  try {
+    const res  = await fetch(`${BASE_URL}/bookings/confirm-payment/`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        razorpay_order_id:   orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature:  signature,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return showError(data.error || 'Payment confirmation failed. Contact support.');
+    }
+
+    localStorage.setItem('confirmed_booking', JSON.stringify(data.booking));
+    localStorage.setItem('success_confirmed', 'true');
+    localStorage.removeItem('pending_booking');
+    buildReceipt(data.booking);
+    showScreen('success');
+
+  } catch(err) {
+    console.error('confirmPayment error:', err);
+    showError('Network error. Your payment may have gone through — check your bookings or contact support.');
+  }
+}
+</script>
+</body>
+</html>

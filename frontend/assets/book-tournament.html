@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>ChessMonk — Book Tournament</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --crimson:#dc143c;--crimson-bright:#ff1a4a;--crimson-dark:#8b0000;
+  --crimson-glow:rgba(220,20,60,0.6);--crimson-dim:rgba(220,20,60,0.15);
+  --gold:#c9a84c;--gold-bright:#ffd700;--gold-glow:rgba(201,168,76,0.5);
+  --glass-bg:rgba(8,4,12,0.75);--glass-border:rgba(220,20,60,0.25);
+  --black-deep:#020005;--text-primary:#f0e8d0;
+  --text-secondary:#b09878;--text-dim:rgba(176,152,120,0.6);
+  --sidebar-w:240px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100dvh;}
+body{font-family:'Rajdhani',sans-serif;background:var(--black-deep);color:var(--text-primary);display:flex;}
+.bg-canvas{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(100,0,20,0.4) 0%,transparent 65%),
+  linear-gradient(180deg,#06000e 0%,#020005 60%,#040008 100%);}
+.embers{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.ember{position:absolute;width:2px;height:2px;border-radius:50%;
+  animation:floatUp var(--dur) ease-in infinite;animation-delay:var(--delay);
+  left:var(--left);bottom:-10px;opacity:0;}
+.ember.red{background:#ff1a4a;box-shadow:0 0 4px #ff1a4a;}
+.ember.gold{background:#ffaa00;box-shadow:0 0 4px #ffaa00;width:1.5px;height:1.5px;}
+@keyframes floatUp{0%{opacity:0;transform:translateY(0) scale(1);}10%{opacity:1;}80%{opacity:.6;}100%{opacity:0;transform:translateY(-100vh) translateX(var(--drift)) scale(.3);}}
+
+
+.mobile-header{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:110;
+  background:rgba(6,0,12,0.95);border-bottom:1px solid rgba(220,20,60,0.2);
+  padding:0.7rem 1rem;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(12px);
+}
+.mobile-header .mh-logo{font-family:'Cinzel Decorative',serif;font-size:0.85rem;font-weight:900;
+  background:linear-gradient(135deg,var(--crimson-bright),var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hamburger{width:32px;height:32px;display:flex;flex-direction:column;justify-content:center;
+  gap:5px;cursor:pointer;background:none;border:none;padding:4px;}
+.hamburger span{display:block;height:2px;background:var(--crimson-bright);border-radius:1px;
+  transition:all 0.3s;}
+.hamburger span:nth-child(1){width:22px;}
+.hamburger span:nth-child(2){width:16px;margin-left:auto;}
+.hamburger span:nth-child(3){width:22px;}
+.hamburger.active span:nth-child(1){transform:translateY(7px) rotate(45deg);width:22px;}
+.hamburger.active span:nth-child(2){opacity:0;}
+.hamburger.active span:nth-child(3){transform:translateY(-7px) rotate(-45deg);width:22px;}
+
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:90;
+  backdrop-filter:blur(2px);opacity:0;transition:opacity 0.3s;
+}
+.sidebar-overlay.show{display:block;opacity:1;}
+
+.sidebar{
+  position:relative;z-index:10;width:var(--sidebar-w);min-width:var(--sidebar-w);min-height:100dvh;
+  background:rgba(6,0,12,0.95);border-right:1px solid rgba(220,20,60,0.2);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+  transition:transform 0.3s ease;
+}
+.sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;
+  background:linear-gradient(180deg,transparent,var(--crimson),var(--gold),var(--crimson),transparent);opacity:0.4;}
+.sidebar-logo{padding:1.6rem 1.4rem 1.2rem;border-bottom:1px solid rgba(220,20,60,0.15);
+  display:flex;align-items:center;gap:10px;}
+.sidebar-logo .s-icon{font-size:1.6rem;filter:drop-shadow(0 0 10px var(--crimson-glow));}
+.sidebar-logo .s-title{font-family:'Cinzel Decorative',serif;font-size:0.9rem;font-weight:900;
+  background:linear-gradient(135deg,var(--crimson-bright),var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.1em;}
+.sidebar-nav{flex:1;padding:1.2rem 0;overflow-y:auto;}
+.nav-section-label{font-family:'Cinzel',serif;font-size:0.52rem;letter-spacing:0.4em;
+  text-transform:uppercase;color:var(--text-dim);padding:0.6rem 1.4rem 0.4rem;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.75rem 1.4rem;cursor:pointer;
+  font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--text-secondary);transition:all 0.25s;border-left:2px solid transparent;}
+.nav-item:hover{color:var(--text-primary);background:rgba(220,20,60,0.06);}
+.nav-item.active{color:var(--text-primary);background:rgba(220,20,60,0.12);border-left-color:var(--crimson-bright);}
+.nav-item .n-icon{font-size:1rem;width:20px;text-align:center;}
+.nav-item .n-arrow{margin-left:auto;font-size:0.6rem;transition:transform 0.25s;}
+.nav-item.open .n-arrow{transform:rotate(180deg);}
+.nav-sub{overflow:hidden;max-height:0;transition:max-height 0.3s ease;}
+.nav-sub.open{max-height:200px;}
+.nav-sub-item{display:flex;align-items:center;gap:8px;padding:0.6rem 1.4rem 0.6rem 2.8rem;
+  font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--text-dim);cursor:pointer;transition:color 0.2s;}
+.nav-sub-item:hover{color:var(--gold);}
+.nav-sub-item .dot{width:4px;height:4px;border-radius:50%;background:var(--crimson-bright);}
+.sidebar-footer{padding:1rem 1.4rem;border-top:1px solid rgba(220,20,60,0.15);}
+.logout-btn{width:100%;padding:0.65rem;font-family:'Cinzel',serif;font-size:0.58rem;
+  letter-spacing:0.25em;text-transform:uppercase;background:transparent;
+  border:1px solid rgba(220,20,60,0.3);color:var(--crimson-bright);cursor:pointer;
+  transition:all 0.3s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);}
+.logout-btn:hover{background:rgba(220,20,60,0.12);box-shadow:0 0 16px var(--crimson-glow);}
+
+.main{position:relative;z-index:10;flex:1;min-height:100dvh;overflow-y:auto;padding:2rem 2rem 3rem;}
+.main::-webkit-scrollbar{width:4px;}
+.main::-webkit-scrollbar-thumb{background:rgba(220,20,60,0.3);}
+.page-title{font-family:'Cinzel Decorative',serif;font-size:1.5rem;font-weight:700;
+  margin-bottom:1.5rem;color:var(--text-primary);}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.8rem;}
+.plan-card{padding:1.4rem 1.6rem;cursor:pointer;border-radius:2px;
+  background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid rgba(220,20,60,0.2);position:relative;overflow:hidden;transition:all 0.3s;}
+.plan-card::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(220,20,60,0.06) 0%,transparent 60%);pointer-events:none;}
+.plan-card:hover{border-color:rgba(220,20,60,0.5);transform:translateY(-2px);
+  box-shadow:0 8px 30px rgba(220,20,60,0.15);}
+.plan-card.selected{background:linear-gradient(135deg,rgba(220,20,60,0.25),rgba(180,10,30,0.15));
+  border-color:var(--crimson-bright);
+  box-shadow:0 0 30px rgba(220,20,60,0.35),inset 0 0 20px rgba(220,20,60,0.08);}
+.plan-name{font-family:'Cinzel',serif;font-size:0.9rem;font-weight:700;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--text-primary);margin-bottom:0.4rem;}
+.plan-price{font-family:'Rajdhani',sans-serif;font-size:1.5rem;font-weight:700;
+  color:var(--crimson-bright);text-shadow:0 0 12px var(--crimson-glow);}
+.plan-desc{font-size:0.75rem;color:var(--text-dim);letter-spacing:0.05em;margin-top:0.3rem;}
+.plan-check{position:absolute;top:0.8rem;right:0.8rem;width:20px;height:20px;border-radius:50%;
+  background:var(--crimson-bright);box-shadow:0 0 10px var(--crimson-glow);
+  display:none;align-items:center;justify-content:center;font-size:0.7rem;}
+.plan-card.selected .plan-check{display:flex;}
+.section-wrap{background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid rgba(220,20,60,0.25);padding:1.2rem 1.5rem;margin-bottom:1.2rem;position:relative;}
+.section-wrap::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(220,20,60,0.04) 0%,transparent 60%);pointer-events:none;}
+.section-label{font-family:'Cinzel',serif;font-size:0.62rem;letter-spacing:0.35em;
+  text-transform:uppercase;color:var(--text-secondary);margin-bottom:0.8rem;display:block;}
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.time-input{width:100%;background:#0a0010;border:1px solid rgba(220,20,60,0.25);
+  color:var(--text-primary);padding:0.75rem 1rem;font-family:'Rajdhani',sans-serif;
+  font-size:1rem;letter-spacing:0.05em;outline:none;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);transition:border-color 0.3s;}
+.time-input:focus{border-color:var(--crimson-bright);box-shadow:0 0 16px rgba(220,20,60,0.2);}
+.time-input::-webkit-calendar-picker-indicator{filter:invert(1) opacity(0.4);}
+.weekday-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0.5rem;}
+.weekday-btn{padding:0.6rem 0.3rem;font-family:'Cinzel',serif;font-size:0.6rem;
+  letter-spacing:0.15em;text-transform:uppercase;text-align:center;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+  color:var(--text-dim);cursor:pointer;transition:all 0.2s;
+  clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+.weekday-btn:hover{background:rgba(220,20,60,0.1);color:var(--text-primary);
+  border-color:rgba(220,20,60,0.3);}
+.weekday-btn.selected{background:rgba(220,20,60,0.25);color:var(--crimson-bright);
+  border-color:var(--crimson-bright);box-shadow:0 0 10px rgba(220,20,60,0.3);}
+.custom-slots-row{display:flex;align-items:center;gap:1rem;}
+.slots-input{width:120px;background:#0a0010;border:1px solid rgba(220,20,60,0.3);
+  color:var(--text-primary);padding:0.6rem 1rem;font-family:'Rajdhani',sans-serif;font-size:1.1rem;
+  font-weight:700;text-align:center;outline:none;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);transition:border-color 0.3s;}
+.slots-input:focus{border-color:var(--crimson-bright);}
+.slots-total{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;
+  color:var(--gold);letter-spacing:0.05em;}
+.booking-layout{display:grid;grid-template-columns:1fr 280px;gap:1.5rem;align-items:start;}
+.cal-panel{background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid rgba(220,20,60,0.25);padding:1.4rem;position:relative;}
+.cal-panel::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(220,20,60,0.05) 0%,transparent 60%);pointer-events:none;}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;}
+.cal-month{font-family:'Cinzel',serif;font-size:0.8rem;font-weight:700;
+  letter-spacing:0.25em;text-transform:uppercase;color:var(--text-primary);}
+.cal-arrow{background:none;border:1px solid rgba(220,20,60,0.3);color:var(--text-secondary);
+  width:30px;height:30px;cursor:pointer;font-size:0.9rem;
+  transition:all 0.2s;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+.cal-arrow:hover{background:rgba(220,20,60,0.15);color:var(--text-primary);border-color:var(--crimson-bright);}
+.day-headers{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.day-hdr{font-family:'Cinzel',serif;font-size:0.52rem;letter-spacing:0.1em;
+  text-align:center;color:var(--text-dim);padding:4px 0;}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-day{aspect-ratio:1/1.2;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;
+  color:var(--text-secondary);border-radius:2px;cursor:pointer;
+  transition:all 0.15s;position:relative;border:1px solid transparent;min-height:48px;}
+.cal-day:hover:not(.empty):not(.past):not(.holiday):not(.disabled){
+  background:rgba(220,20,60,0.12);color:var(--text-primary);border-color:rgba(220,20,60,0.3);}
+.cal-day.empty{pointer-events:none;}
+.cal-day.past{opacity:0.3;pointer-events:none;}
+.cal-day.weekend{color:var(--gold);}
+.cal-day.holiday{color:rgba(176,152,120,0.4);background:rgba(0,0,0,0.2);
+  border-color:rgba(255,255,255,0.04);cursor:not-allowed;opacity:0.5;}
+.cal-day.holiday .hol-name{font-size:0.42rem;color:rgba(176,152,120,0.5);
+  line-height:1.1;text-align:center;margin-top:1px;padding:0 2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.cal-day.disabled{opacity:0.3;pointer-events:none;cursor:not-allowed;}
+.cal-day.auto-selected{background:rgba(100,60,200,0.3);color:#c4b5fd;
+  border-color:rgba(139,92,246,0.7);box-shadow:0 0 10px rgba(139,92,246,0.3);}
+.cal-day.selected{background:rgba(220,20,60,0.25);color:var(--text-primary);
+  border-color:var(--crimson-bright);box-shadow:0 0 12px rgba(220,20,60,0.3);}
+.cal-day.today{border-color:rgba(201,168,76,0.5);color:var(--gold-bright);}
+.cal-day .day-num{font-size:0.85rem;font-weight:700;}
+.cal-day .day-name{font-family:'Cinzel',serif;font-size:0.44rem;letter-spacing:0.08em;
+  color:var(--text-dim);margin-top:1px;}
+.summary-panel{background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid rgba(220,20,60,0.25);padding:1.5rem;position:sticky;top:0;}
+.summary-panel::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(220,20,60,0.05) 0%,transparent 60%);pointer-events:none;}
+.summary-title{font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.35em;
+  text-transform:uppercase;color:var(--text-primary);margin-bottom:1.2rem;
+  padding-bottom:0.8rem;border-bottom:1px solid rgba(220,20,60,0.15);}
+.summary-row{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:0.8rem;font-size:0.85rem;}
+.summary-row .s-label{color:var(--text-dim);letter-spacing:0.05em;}
+.summary-row .s-val{color:var(--text-primary);font-weight:600;}
+.summary-divider{height:1px;background:rgba(220,20,60,0.15);margin:1rem 0;}
+.summary-price{font-family:'Rajdhani',sans-serif;font-size:2rem;font-weight:700;
+  color:var(--crimson-bright);text-shadow:0 0 16px var(--crimson-glow);}
+.summary-price-label{font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--text-dim);margin-bottom:0.3rem;}
+.selected-dates-list{margin-top:0.8rem;max-height:160px;overflow-y:auto;}
+.selected-dates-list::-webkit-scrollbar{width:3px;}
+.selected-dates-list::-webkit-scrollbar-thumb{background:rgba(220,20,60,0.3);}
+.date-chip{display:flex;align-items:center;justify-content:space-between;
+  padding:0.4rem 0.6rem;background:rgba(220,20,60,0.1);
+  border:1px solid rgba(220,20,60,0.2);margin-bottom:4px;font-size:0.78rem;
+  clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+.date-chip.auto{background:rgba(100,60,200,0.15);border-color:rgba(139,92,246,0.4);}
+.date-chip .chip-date{color:var(--text-secondary);}
+.date-chip .chip-remove{color:var(--crimson-bright);cursor:pointer;font-size:0.9rem;
+  background:none;border:none;padding:0;min-width:24px;min-height:24px;display:flex;align-items:center;justify-content:center;}
+.date-chip .chip-remove:hover{color:var(--gold);}
+.book-btn{width:100%;padding:0.95rem;margin-top:1.2rem;font-family:'Cinzel',serif;
+  font-size:0.72rem;font-weight:700;letter-spacing:0.35em;text-transform:uppercase;
+  cursor:pointer;border:none;outline:none;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--crimson-dark),var(--crimson));
+  color:var(--text-primary);box-shadow:0 0 25px rgba(220,20,60,0.35);
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);transition:all 0.3s;}
+.book-btn:hover{background:linear-gradient(135deg,var(--crimson),var(--crimson-bright));
+  box-shadow:0 0 40px rgba(220,20,60,0.6);transform:translateY(-2px);}
+.book-btn::before{content:'';position:absolute;top:50%;left:-100%;width:60%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.8),transparent);
+  transform:translateY(-50%) skewX(-20deg);transition:left 0.5s;}
+.book-btn:hover::before{left:150%;}
+.book-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.rc{position:absolute;width:14px;height:14px;pointer-events:none;z-index:2;}
+.rc.tl{top:0;left:0;border-top:1px solid var(--gold);border-left:1px solid var(--gold);}
+.rc.tr{top:0;right:0;border-top:1px solid var(--gold);border-right:1px solid var(--gold);}
+.rc.bl{bottom:0;left:0;border-bottom:1px solid var(--gold);border-left:1px solid var(--gold);}
+.rc.br{bottom:0;right:0;border-bottom:1px solid var(--gold);border-right:1px solid var(--gold);}
+.toast{position:fixed;top:1.5rem;right:1.5rem;z-index:200;
+  padding:0.9rem 1.4rem;background:rgba(6,0,12,0.95);
+  border:1px solid var(--gold);border-left:3px solid var(--gold);
+  font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--gold);box-shadow:0 0 30px rgba(201,168,76,0.3);
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  opacity:0;transform:translateY(-10px);transition:all 0.4s ease;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.premium-info{font-size:0.72rem;color:#c4b5fd;margin-top:0.8rem;padding:0.6rem 0.8rem;
+  background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);
+  clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+.hidden{display:none !important;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:rgba(220,20,60,0.3);}
+
+
+
+@media(max-width:1024px){
+  .plans-grid{grid-template-columns:repeat(3,1fr);gap:0.75rem;}
+  .plan-card{padding:1.2rem 1rem;}
+  .plan-name{font-size:0.78rem;}
+  .plan-price{font-size:1.25rem;}
+  .booking-layout{grid-template-columns:1fr 240px;gap:1rem;}
+  .summary-panel{padding:1.2rem;}
+  .summary-price{font-size:1.6rem;}
+}
+
+
+@media(max-width:900px){
+  .plans-grid{grid-template-columns:1fr;}
+  .plan-card{padding:1.2rem 1.4rem;}
+  .booking-layout{grid-template-columns:1fr;}
+  .summary-panel{position:static;margin-top:1rem;}
+  .cal-panel{padding:1rem;}
+  .cal-day{min-height:44px;font-size:0.75rem;}
+}
+
+
+@media(max-width:768px){
+  .mobile-header{display:flex;}
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);z-index:100;
+    height:100dvh;min-height:auto;}
+  .sidebar.open{transform:translateX(0);}
+  .main{padding:3.8rem 1rem 2rem;}
+  .page-title{font-size:1.15rem;margin-bottom:1rem;}
+  .plans-grid{grid-template-columns:1fr;gap:0.75rem;margin-bottom:1.2rem;}
+  .plan-card{padding:1.1rem 1.2rem;}
+  .plan-name{font-size:0.8rem;}
+  .plan-price{font-size:1.3rem;}
+  .plan-desc{font-size:0.72rem;}
+  .time-row{grid-template-columns:1fr;gap:0.6rem;}
+  .time-input{padding:0.65rem 0.8rem;font-size:0.95rem;}
+  .weekday-grid{grid-template-columns:repeat(4,1fr);gap:0.4rem;}
+  .weekday-btn{padding:0.55rem 0.2rem;font-size:0.55rem;}
+  .custom-slots-row{flex-direction:column;align-items:flex-start;gap:0.6rem;}
+  .booking-layout{grid-template-columns:1fr;gap:1rem;}
+  .cal-panel{padding:0.9rem;}
+  .cal-month{font-size:0.7rem;}
+  .cal-arrow{width:36px;height:36px;font-size:1rem;}
+  .day-hdr{font-size:0.48rem;padding:3px 0;}
+  .cal-day{min-height:40px;font-size:0.72rem;}
+  .cal-day .day-num{font-size:0.78rem;}
+  .cal-day .day-name{font-size:0.4rem;}
+  .cal-day.holiday .hol-name{font-size:0.35rem;}
+  .summary-panel{padding:1.2rem;position:static;}
+  .summary-title{font-size:0.6rem;}
+  .summary-row{font-size:0.8rem;}
+  .summary-price{font-size:1.6rem;}
+  .date-chip{font-size:0.72rem;padding:0.35rem 0.5rem;}
+  .book-btn{padding:0.85rem;font-size:0.68rem;}
+  .section-wrap{padding:1rem 1.1rem;}
+  .section-label{font-size:0.58rem;}
+  .toast{top:auto;bottom:1rem;right:0.5rem;left:0.5rem;text-align:center;}
+}
+
+
+@media(max-width:480px){
+  .main{padding:3.6rem 0.7rem 1.5rem;}
+  .page-title{font-size:1rem;margin-bottom:0.8rem;}
+  .plans-grid{gap:0.6rem;margin-bottom:1rem;}
+  .plan-card{padding:1rem;}
+  .plan-name{font-size:0.72rem;letter-spacing:0.1em;}
+  .plan-price{font-size:1.15rem;}
+  .plan-desc{font-size:0.68rem;}
+  .plan-check{width:18px;height:18px;top:0.6rem;right:0.6rem;}
+  .weekday-grid{grid-template-columns:repeat(3,1fr);gap:0.35rem;}
+  .weekday-btn{padding:0.5rem 0.15rem;font-size:0.5rem;letter-spacing:0.08em;}
+  .cal-panel{padding:0.7rem;}
+  .cal-nav{margin-bottom:0.8rem;}
+  .cal-month{font-size:0.62rem;letter-spacing:0.15em;}
+  .cal-arrow{width:32px;height:32px;}
+  .day-hdr{font-size:0.42rem;padding:2px 0;}
+  .days-grid{gap:2px;}
+  .cal-day{min-height:36px;font-size:0.65rem;}
+  .cal-day .day-num{font-size:0.7rem;}
+  .cal-day .day-name{font-size:0.35rem;}
+  .cal-day.holiday .hol-name{display:none;}
+  .summary-panel{padding:1rem;}
+  .summary-title{font-size:0.55rem;margin-bottom:0.8rem;padding-bottom:0.6rem;}
+  .summary-row{margin-bottom:0.6rem;font-size:0.75rem;}
+  .summary-price{font-size:1.4rem;}
+  .summary-price-label{font-size:0.52rem;}
+  .selected-dates-list{max-height:120px;}
+  .date-chip{font-size:0.68rem;padding:0.3rem 0.45rem;}
+  .book-btn{padding:0.75rem;font-size:0.62rem;letter-spacing:0.25em;}
+  .section-wrap{padding:0.85rem 0.9rem;margin-bottom:0.9rem;}
+  .section-label{font-size:0.52rem;margin-bottom:0.6rem;}
+  .slots-input{width:100px;padding:0.5rem 0.8rem;font-size:1rem;}
+  .slots-total{font-size:0.9rem;}
+  .time-input{padding:0.6rem 0.75rem;font-size:0.9rem;}
+  .premium-info{font-size:0.65rem;padding:0.5rem 0.6rem;}
+  .toast{font-size:0.58rem;padding:0.7rem 1rem;}
+}
+
+
+@media(max-width:360px){
+  .weekday-grid{grid-template-columns:repeat(2,1fr);}
+  .cal-day{min-height:32px;font-size:0.6rem;}
+  .cal-day .day-num{font-size:0.65rem;}
+  .plan-name{font-size:0.68rem;}
+  .plan-price{font-size:1.05rem;}
+}
+
+
+
+@media(max-height:500px) and (orientation:landscape){
+  .mobile-header{padding:0.5rem 1rem;}
+  .main{padding-top:3rem;}
+  .plans-grid{grid-template-columns:repeat(3,1fr);}
+  .plan-card{padding:0.8rem 1rem;}
+  .booking-layout{grid-template-columns:1fr 220px;}
+  .summary-panel{position:static;}
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+<div class="embers" id="embers"></div>
+<div class="toast" id="toast"></div>
+
+<!-- MOBILE HEADER -->
+<div class="mobile-header" id="mobileHeader">
+  <span class="mh-logo">♟ ChessMonk</span>
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Toggle menu">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="s-icon">♟</span>
+    <span class="s-title">ChessMonk</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item" onclick="navigate('dashboard.html')">
+      <span class="n-icon">⚔</span> Dashboard
+    </div>
+    <div class="nav-section-label" style="margin-top:0.5rem;">Bookings</div>
+    <div class="nav-item open" id="bookings-nav" onclick="toggleBookings()">
+      <span class="n-icon">📅</span> Bookings
+      <span class="n-arrow">▼</span>
+    </div>
+    <div class="nav-sub open" id="bookings-sub">
+      <div class="nav-sub-item" onclick="navigate('view-bookings.html')">
+        <span class="dot"></span> View Bookings
+      </div>
+      <div class="nav-sub-item active" onclick="navigate('book-tournament.html')">
+        <span class="dot"></span> Book Tournament
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">⚔ &nbsp;Retreat from Realm</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-title">⚔ Book Your Tournament</div>
+
+  <div class="plans-grid">
+    <div class="plan-card selected" id="plan-basic" onclick="selectPlan('basic')">
+      <div class="plan-check">✓</div>
+      <div class="plan-name">Basic</div>
+      <div class="plan-price">₹300</div>
+      <div class="plan-desc">1 slot · pick any single date</div>
+    </div>
+    <div class="plan-card" id="plan-monthly_premium" onclick="selectPlan('monthly_premium')">
+      <div class="plan-check">✓</div>
+      <div class="plan-name">Premium</div>
+      <div class="plan-price">₹2,400</div>
+      <div class="plan-desc">8 slots · pick 2 weekdays · 4 slots each</div>
+    </div>
+    <div class="plan-card" id="plan-custom" onclick="selectPlan('custom')">
+      <div class="plan-check">✓</div>
+      <div class="plan-name">Custom</div>
+      <div class="plan-price">₹300<span style="font-size:1rem;"> / slot</span></div>
+      <div class="plan-desc">Up to 8 slots · full manual control</div>
+    </div>
+  </div>
+
+  <div class="section-wrap">
+    <label class="section-label">Select Time</label>
+    <div class="time-row">
+      <input type="time" class="time-input" id="timeStart" value="11:00"/>
+      <input type="time" class="time-input" id="timeEnd" value="12:00"/>
+    </div>
+  </div>
+
+  <div class="section-wrap hidden" id="weekdaySection">
+    <label class="section-label">Select Weekdays <span style="color:var(--text-dim);font-size:0.85em;">(pick exactly 2 — 4 slots per day, auto-selected)</span></label>
+    <div class="weekday-grid">
+      <button class="weekday-btn" data-day="0" onclick="toggleWeekday(0)">Sun</button>
+      <button class="weekday-btn" data-day="1" onclick="toggleWeekday(1)">Mon</button>
+      <button class="weekday-btn" data-day="2" onclick="toggleWeekday(2)">Tue</button>
+      <button class="weekday-btn" data-day="3" onclick="toggleWeekday(3)">Wed</button>
+      <button class="weekday-btn" data-day="4" onclick="toggleWeekday(4)">Thu</button>
+      <button class="weekday-btn" data-day="5" onclick="toggleWeekday(5)">Fri</button>
+      <button class="weekday-btn" data-day="6" onclick="toggleWeekday(6)">Sat</button>
+    </div>
+    <div class="premium-info hidden" id="premiumInfo"></div>
+  </div>
+
+  <div class="section-wrap hidden" id="customSlotsSection">
+    <label class="section-label">Number of Slots <span style="color:var(--text-dim);font-size:0.85em;">(max 8)</span></label>
+    <div class="custom-slots-row">
+      <input type="number" class="slots-input" id="customSlotsInput"
+             min="1" max="8" value="1" oninput="updateCustomSlots()"/>
+      <div class="slots-total" id="customTotal">Total: ₹300</div>
+    </div>
+  </div>
+
+  <div class="booking-layout">
+    <div class="cal-panel" style="position:relative;">
+      <div class="rc tl"></div><div class="rc tr"></div>
+      <div class="rc bl"></div><div class="rc br"></div>
+      <div class="cal-nav">
+        <button class="cal-arrow" onclick="changeMonth(-1)">‹</button>
+        <div class="cal-month" id="calMonthLabel"></div>
+        <button class="cal-arrow" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="day-headers" id="dayHeaders"></div>
+      <div class="days-grid" id="daysGrid"></div>
+    </div>
+
+    <div class="summary-panel" style="position:relative;">
+      <div class="rc tl"></div><div class="rc tr"></div>
+      <div class="rc bl"></div><div class="rc br"></div>
+      <div class="summary-title">⬦ Selected Slots</div>
+      <div class="summary-row">
+        <span class="s-label">Plan</span>
+        <span class="s-val" id="summaryPlan">Basic</span>
+      </div>
+      <div class="summary-row">
+        <span class="s-label">Slots</span>
+        <span class="s-val" id="summarySlots">0 / 1</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-price-label">Total Price</div>
+      <div class="summary-price" id="summaryPrice">₹ 300</div>
+      <div class="selected-dates-list" id="selectedDatesList"></div>
+      <button class="book-btn" id="bookBtn" onclick="initiateBooking()" disabled>
+        ⚔ &nbsp; Proceed to Payment
+      </button>
+    </div>
+  </div>
+</main>
+
+<script>
+const BASE_URL = 'http://127.0.0.1:8000/api';
+const token = localStorage.getItem('access_token');
+if(!token) window.location.href = 'index.html';
+
+const HOLIDAYS = {
+  '2025-01-01':'New Year','2025-01-14':'Makar Sankranti','2025-01-26':'Republic Day',
+  '2025-03-14':'Holi','2025-03-30':'Ugadi / Gudi Padwa','2025-04-14':'Dr. Ambedkar Jayanti',
+  '2025-04-18':'Good Friday','2025-05-12':'Buddha Purnima','2025-08-15':'Independence Day',
+  '2025-08-16':'Janmashtami','2025-10-02':'Gandhi Jayanti / Dussehra',
+  '2025-10-20':'Diwali','2025-10-21':'Diwali','2025-11-05':'Guru Nanak Jayanti',
+  '2025-12-25':'Christmas','2026-01-01':'New Year','2026-01-26':'Republic Day',
+  '2026-03-03':'Holika Dahana','2026-03-04':'Holi','2026-03-19':'Ugadi / Gudi Padwa',
+  '2026-03-20':'Jamat Ul-Vida','2026-03-21':'Ramzan Id','2026-04-14':'Dr. Ambedkar Jayanti',
+  '2026-08-15':'Independence Day','2026-10-02':'Gandhi Jayanti','2026-12-25':'Christmas',
+};
+
+const PLAN_PRICES = {basic:300, monthly_premium:2400, custom:300};
+
+let state = {
+  plan: 'basic',
+  customSlots: 1,
+  selectedWeekdays: [],
+  selectedDates: [],
+  autoGeneratedDates: [],
+  currentYear: new Date().getFullYear(),
+  currentMonth: new Date().getMonth(),
+};
+
+const ec = document.getElementById('embers');
+for(let i=0;i<35;i++){
+  const e=document.createElement('div');
+  e.className='ember '+(Math.random()>0.6?'gold':'red');
+  e.style.setProperty('--dur',(7+Math.random()*12)+'s');
+  e.style.setProperty('--delay',(Math.random()*15)+'s');
+  e.style.setProperty('--left',(Math.random()*100)+'%');
+  e.style.setProperty('--drift',((Math.random()-0.5)*100)+'px');
+  ec.appendChild(e);
+}
+
+function showToast(msg, duration=3500){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+function toggleSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const hamburger = document.getElementById('hamburger');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+  hamburger.classList.toggle('active');
+}
+
+function selectPlan(plan){
+  state.plan = plan;
+  state.selectedDates = [];
+  state.autoGeneratedDates = [];
+  state.selectedWeekdays = [];
+  state.customSlots = 1;
+  ['basic','monthly_premium','custom'].forEach(p=>{
+    document.getElementById(`plan-${p}`).classList.toggle('selected', p===plan);
+  });
+  document.getElementById('weekdaySection').classList.toggle('hidden', plan !== 'monthly_premium');
+  document.getElementById('customSlotsSection').classList.toggle('hidden', plan !== 'custom');
+  document.getElementById('premiumInfo').classList.add('hidden');
+  document.querySelectorAll('.weekday-btn').forEach(b=>b.classList.remove('selected'));
+  updateSummary();
+  renderCalendar();
+}
+
+function toggleWeekday(day){
+  if(state.plan !== 'monthly_premium') return;
+  const idx = state.selectedWeekdays.indexOf(day);
+  if(idx > -1){
+    state.selectedWeekdays.splice(idx, 1);
+  } else {
+    if(state.selectedWeekdays.length >= 2){
+      showToast('⚔ Pick exactly 2 weekdays for Premium plan');
+      return;
+    }
+    state.selectedWeekdays.push(day);
+  }
+  document.querySelectorAll('.weekday-btn').forEach(b=>{
+    b.classList.toggle('selected', state.selectedWeekdays.includes(parseInt(b.dataset.day)));
+  });
+  if(state.selectedWeekdays.length === 2){
+    generateAndAutoSelectPremiumDates();
+  } else {
+    state.autoGeneratedDates = [];
+    state.selectedDates = [];
+    document.getElementById('premiumInfo').classList.add('hidden');
+  }
+  updateSummary();
+  renderCalendar();
+}
+
+function generateAndAutoSelectPremiumDates(){
+  const today = new Date();
+  const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const day1 = state.selectedWeekdays[0];
+  const day2 = state.selectedWeekdays[1];
+  const slotsDay1 = [];
+  const slotsDay2 = [];
+  let year = today.getFullYear();
+  let month = today.getMonth();
+
+  for(let m = 0; m < 6; m++){
+    const totalDays = new Date(year, month+1, 0).getDate();
+    for(let d = 1; d <= totalDays; d++){
+      const dateObj = new Date(year, month, d);
+      if(dateObj.getTime() < todayMs) continue;
+      const dow = dateObj.getDay();
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      if(HOLIDAYS[dateStr]) continue;
+      if(dow === day1 && slotsDay1.length < 4) slotsDay1.push(dateStr);
+      else if(dow === day2 && slotsDay2.length < 4) slotsDay2.push(dateStr);
+      if(slotsDay1.length === 4 && slotsDay2.length === 4) break;
+    }
+    if(slotsDay1.length === 4 && slotsDay2.length === 4) break;
+    month++;
+    if(month > 11){ month = 0; year++; }
+  }
+
+  const all = [...slotsDay1, ...slotsDay2];
+  state.autoGeneratedDates = all;
+  state.selectedDates = [...all];
+
+  const DAY_NAMES_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const infoEl = document.getElementById('premiumInfo');
+  infoEl.textContent = `✦ 8 slots auto-selected: 4 ${DAY_NAMES_FULL[day1]}s + 4 ${DAY_NAMES_FULL[day2]}s (skipping holidays). Navigate calendar to view all.`;
+  infoEl.classList.remove('hidden');
+}
+
+function updateCustomSlots(){
+  const val = parseInt(document.getElementById('customSlotsInput').value) || 1;
+  state.customSlots = Math.min(8, Math.max(1, val));
+  document.getElementById('customSlotsInput').value = state.customSlots;
+  document.getElementById('customTotal').textContent = `Total: ₹${state.customSlots * 300}`;
+  if(state.selectedDates.length > state.customSlots){
+    state.selectedDates = state.selectedDates.slice(0, state.customSlots);
+  }
+  updateSummary();
+  renderCalendar();
+}
+
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+
+function changeMonth(dir){
+  state.currentMonth += dir;
+  if(state.currentMonth > 11){ state.currentMonth = 0; state.currentYear++; }
+  if(state.currentMonth < 0){ state.currentMonth = 11; state.currentYear--; }
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const {currentYear:year, currentMonth:month} = state;
+  document.getElementById('calMonthLabel').textContent = `${MONTH_NAMES[month]} ${year}`;
+  document.getElementById('dayHeaders').innerHTML = DAY_NAMES.map(d=>`<div class="day-hdr">${d}</div>`).join('');
+  const grid = document.getElementById('daysGrid');
+  grid.innerHTML = '';
+  const today = new Date();
+  const todayMs = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month+1, 0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    const emp = document.createElement('div');
+    emp.className = 'cal-day empty';
+    grid.appendChild(emp);
+  }
+
+  for(let d=1;d<=totalDays;d++){
+    const dateObj = new Date(year, month, d);
+    const dow = dateObj.getDay();
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast = dateObj.getTime() < todayMs;
+    const isToday = d===today.getDate() && month===today.getMonth() && year===today.getFullYear();
+    const isHoliday = !!HOLIDAYS[dateStr];
+    const isWeekend = dow===0 || dow===6;
+    const isSelected = state.selectedDates.includes(dateStr);
+    const isAuto = state.autoGeneratedDates.includes(dateStr);
+
+    let cls = 'cal-day';
+    if(isPast) cls += ' past';
+    if(isToday) cls += ' today';
+    if(isHoliday) cls += ' holiday';
+    else if(isWeekend) cls += ' weekend';
+    if(isAuto && state.plan === 'monthly_premium') cls += ' auto-selected';
+    else if(isSelected) cls += ' selected';
+
+    let clickable = !isPast && !isHoliday;
+    if(state.plan === 'basic'){
+      if(!isSelected && state.selectedDates.length >= 1) clickable = false;
+    } else if(state.plan === 'monthly_premium'){
+      clickable = false;
+    } else if(state.plan === 'custom'){
+      if(!isSelected && state.selectedDates.length >= state.customSlots) clickable = false;
+    }
+
+    if(!clickable && !isPast && !isHoliday && state.plan !== 'monthly_premium') cls += ' disabled';
+
+    const cell = document.createElement('div');
+    cell.className = cls;
+    cell.innerHTML = `
+      <span class="day-num">${d}</span>
+      <span class="day-name">${DAY_NAMES[dow].substring(0,3)}</span>
+      ${isHoliday ? `<span class="hol-name">${HOLIDAYS[dateStr]}</span>` : ''}
+    `;
+
+    if(clickable) cell.addEventListener('click', ()=>handleDateClick(dateStr));
+    if(isHoliday) cell.title = `${HOLIDAYS[dateStr]} — Booking unavailable`;
+
+    grid.appendChild(cell);
+  }
+}
+
+function handleDateClick(dateStr){
+  if(state.plan === 'monthly_premium') return;
+  if(state.selectedDates.includes(dateStr)){
+    state.selectedDates = state.selectedDates.filter(d=>d!==dateStr);
+    updateSummary();
+    renderCalendar();
+    return;
+  }
+  const max = state.plan === 'basic' ? 1 : state.customSlots;
+  if(state.selectedDates.length >= max){
+    showToast(`⚔ Max ${max} slot(s) for this plan`);
+    return;
+  }
+  state.selectedDates.push(dateStr);
+  updateSummary();
+  renderCalendar();
+}
+
+function removeDate(dateStr){
+  if(state.plan === 'monthly_premium'){
+    showToast('⚔ Dates are auto-generated for Premium — change weekday selection to reset');
+    return;
+  }
+  state.selectedDates = state.selectedDates.filter(d=>d!==dateStr);
+  updateSummary();
+  renderCalendar();
+}
+
+function updateSummary(){
+  let slotCount, price;
+  if(state.plan === 'basic'){ slotCount = 1; price = 300; }
+  else if(state.plan === 'monthly_premium'){ slotCount = 8; price = 2400; }
+  else { slotCount = state.customSlots; price = state.customSlots * 300; }
+
+  const planLabel = state.plan === 'monthly_premium' ? 'Premium'
+    : state.plan.charAt(0).toUpperCase() + state.plan.slice(1);
+
+  document.getElementById('summaryPlan').textContent = planLabel;
+  document.getElementById('summarySlots').textContent = `${state.selectedDates.length} / ${slotCount}`;
+  document.getElementById('summaryPrice').textContent = `₹ ${price.toLocaleString('en-IN')}`;
+
+  const list = document.getElementById('selectedDatesList');
+  list.innerHTML = '';
+  state.selectedDates.forEach(ds=>{
+    const d = new Date(ds+'T00:00:00');
+    const label = d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    const isAuto = state.autoGeneratedDates.includes(ds);
+    const chip = document.createElement('div');
+    chip.className = 'date-chip'+(isAuto?' auto':'');
+    chip.innerHTML = `
+      <span class="chip-date">${label}${isAuto?' ★':''}</span>
+      <button class="chip-remove" onclick="removeDate('${ds}')">✕</button>
+    `;
+    list.appendChild(chip);
+  });
+
+  let ready = false;
+  if(state.plan === 'basic') ready = state.selectedDates.length === 1;
+  else if(state.plan === 'monthly_premium') ready = state.selectedWeekdays.length === 2 && state.selectedDates.length === 8;
+  else ready = state.selectedDates.length === state.customSlots;
+
+  document.getElementById('bookBtn').disabled = !ready;
+}
+
+async function initiateBooking(){
+  const timeStart = document.getElementById('timeStart').value;
+  const timeEnd = document.getElementById('timeEnd').value;
+  if(!timeStart) return showToast('⚔ Please select a start time');
+  if(state.selectedDates.length === 0) return showToast('⚔ Select at least one date');
+
+  const firstDate = state.selectedDates[0];
+  const payload = {
+    plan: state.plan,
+    date: firstDate,
+    time_slot: timeStart,
+    is_holiday_shifted: false,
+  };
+  if(state.plan === 'custom') payload.slots_count = state.customSlots;
+  if(state.plan === 'monthly_premium') payload.dates = state.selectedDates;
+
+  try{
+    const res = await fetch(`${BASE_URL}/bookings/`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if(!res.ok) return showToast('⚔ '+(Object.values(data).flat().join(' ')||'Booking failed'));
+
+    localStorage.setItem('pending_booking', JSON.stringify({
+      booking_id: data.booking_id,
+      razorpay_order_id: data.razorpay_order_id,
+      razorpay_key: data.razorpay_key,
+      amount: data.amount,
+      plan: state.plan,
+      dates: state.selectedDates,
+      time: timeStart,
+      time_start: timeStart,
+      time_end: timeEnd,
+    }));
+
+    window.location.href = 'payment-success.html';
+
+  } catch(err){
+    console.error(err);
+    showToast('⚔ Network error. Is Django running?');
+  }
+}
+
+function toggleBookings(){
+  document.getElementById('bookings-nav').classList.toggle('open');
+  document.getElementById('bookings-sub').classList.toggle('open');
+}
+function navigate(page){ 
+  // Close mobile sidebar on navigation
+  if(window.innerWidth <= 768) toggleSidebar();
+  window.location.href = page; 
+}
+function logout(){ 
+  if(window.innerWidth <= 768) toggleSidebar();
+  localStorage.clear(); 
+  window.location.href = 'index.html'; 
+}
+
+renderCalendar();
+updateSummary();
+</script>
+</body>
+</html>

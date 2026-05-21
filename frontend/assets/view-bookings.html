@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ChessMonk — My Tournament Slots</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --crimson:#dc143c;--crimson-bright:#ff1a4a;--crimson-dark:#8b0000;
+  --crimson-glow:rgba(220,20,60,0.6);--gold:#c9a84c;--gold-bright:#ffd700;
+  --gold-glow:rgba(201,168,76,0.5);--glass-bg:rgba(8,4,12,0.75);
+  --glass-border:rgba(220,20,60,0.25);--black-deep:#020005;
+  --text-primary:#f0e8d0;--text-secondary:#b09878;--text-dim:rgba(176,152,120,0.6);
+  --sidebar-w:240px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Rajdhani',sans-serif;background:var(--black-deep);color:var(--text-primary);display:flex;}
+.bg-canvas{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(100,0,20,0.4) 0%,transparent 65%),
+  radial-gradient(ellipse 40% 30% at 10% 80%,rgba(80,0,15,0.25) 0%,transparent 60%),
+  linear-gradient(180deg,#06000e 0%,#020005 60%,#040008 100%);}
+.embers{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.ember{position:absolute;width:2px;height:2px;border-radius:50%;
+  animation:floatUp var(--dur) ease-in infinite;animation-delay:var(--delay);
+  left:var(--left);bottom:-10px;opacity:0;}
+.ember.red{background:#ff1a4a;box-shadow:0 0 4px #ff1a4a;}
+.ember.gold{background:#ffaa00;box-shadow:0 0 4px #ffaa00;width:1.5px;height:1.5px;}
+@keyframes floatUp{0%{opacity:0;transform:translateY(0) translateX(0) scale(1);}10%{opacity:1;}80%{opacity:.6;}100%{opacity:0;transform:translateY(-100vh) translateX(var(--drift)) scale(.3);}}
+.sidebar{position:relative;z-index:10;width:var(--sidebar-w);min-width:var(--sidebar-w);height:100vh;
+  background:rgba(6,0,12,0.95);border-right:1px solid rgba(220,20,60,0.2);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;
+  background:linear-gradient(180deg,transparent,var(--crimson),var(--gold),var(--crimson),transparent);opacity:0.4;}
+.sidebar-logo{padding:1.6rem 1.4rem 1.2rem;border-bottom:1px solid rgba(220,20,60,0.15);
+  display:flex;align-items:center;gap:10px;}
+.sidebar-logo .s-icon{font-size:1.6rem;filter:drop-shadow(0 0 10px var(--crimson-glow));}
+.sidebar-logo .s-title{font-family:'Cinzel Decorative',serif;font-size:0.9rem;font-weight:900;
+  background:linear-gradient(135deg,var(--crimson-bright),var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:0.1em;}
+.sidebar-nav{flex:1;padding:1.2rem 0;overflow-y:auto;}
+.nav-section-label{font-family:'Cinzel',serif;font-size:0.52rem;letter-spacing:0.4em;
+  text-transform:uppercase;color:var(--text-dim);padding:0.6rem 1.4rem 0.4rem;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.75rem 1.4rem;cursor:pointer;
+  font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--text-secondary);transition:all 0.25s;position:relative;border-left:2px solid transparent;}
+.nav-item:hover{color:var(--text-primary);background:rgba(220,20,60,0.06);}
+.nav-item.active{color:var(--text-primary);background:rgba(220,20,60,0.12);border-left-color:var(--crimson-bright);}
+.nav-item .n-icon{font-size:1rem;width:20px;text-align:center;flex-shrink:0;}
+.nav-item .n-arrow{margin-left:auto;font-size:0.6rem;transition:transform 0.25s;}
+.nav-item.open .n-arrow{transform:rotate(180deg);}
+.nav-sub{overflow:hidden;max-height:0;transition:max-height 0.3s ease;}
+.nav-sub.open{max-height:200px;}
+.nav-sub-item{display:flex;align-items:center;gap:8px;padding:0.6rem 1.4rem 0.6rem 2.8rem;
+  font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--text-dim);cursor:pointer;transition:color 0.2s;}
+.nav-sub-item:hover{color:var(--gold);}
+.nav-sub-item .dot{width:4px;height:4px;border-radius:50%;background:var(--crimson-bright);flex-shrink:0;}
+.sidebar-footer{padding:1rem 1.4rem;border-top:1px solid rgba(220,20,60,0.15);}
+.logout-btn{width:100%;padding:0.65rem;font-family:'Cinzel',serif;font-size:0.58rem;
+  letter-spacing:0.25em;text-transform:uppercase;background:transparent;
+  border:1px solid rgba(220,20,60,0.3);color:var(--crimson-bright);cursor:pointer;
+  transition:all 0.3s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);}
+.logout-btn:hover{background:rgba(220,20,60,0.12);box-shadow:0 0 16px var(--crimson-glow);}
+.main{position:relative;z-index:10;flex:1;height:100vh;overflow-y:auto;padding:2rem 2rem 3rem;}
+.main::-webkit-scrollbar{width:4px;}
+.main::-webkit-scrollbar-track{background:transparent;}
+.main::-webkit-scrollbar-thumb{background:rgba(220,20,60,0.3);}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.8rem;}
+.welcome-text h2{font-family:'Cinzel Decorative',serif;font-size:1.5rem;font-weight:700;letter-spacing:0.05em;}
+.welcome-text h2 span{background:linear-gradient(90deg,var(--crimson-bright),var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.welcome-text p{font-size:0.85rem;color:var(--text-dim);margin-top:4px;letter-spacing:0.05em;}
+.table-card{background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);position:relative;overflow:hidden;}
+.table-card::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(220,20,60,0.05) 0%,transparent 60%);pointer-events:none;}
+.table-header{padding:1.5rem 2rem 1rem;}
+.table-title{font-family:'Cinzel Decorative',serif;font-size:1.1rem;font-weight:700;
+  color:var(--text-primary);letter-spacing:0.08em;margin-bottom:0.3rem;}
+.table-sub{font-size:0.82rem;color:var(--text-dim);}
+.bookings-table{width:100%;border-collapse:collapse;}
+.bookings-table th{font-family:'Cinzel',serif;font-size:0.58rem;letter-spacing:0.3em;
+  text-transform:uppercase;color:var(--text-dim);text-align:left;padding:1rem 1.5rem;
+  border-bottom:1px solid rgba(220,20,60,0.15);font-weight:600;}
+.bookings-table td{padding:0.9rem 1.5rem;font-size:0.9rem;color:var(--text-primary);
+  border-bottom:1px solid rgba(220,20,60,0.07);transition:all 0.2s;}
+.bookings-table tbody tr{transition:all 0.2s;cursor:pointer;}
+.bookings-table tbody tr:hover{background:rgba(220,20,60,0.07);}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;
+  font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;
+  clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);}
+.status-booked{background:rgba(34,197,94,0.15);color:#4ade80;}
+.status-cancelled{background:rgba(220,20,60,0.15);color:var(--crimson-bright);}
+.status-pending{background:rgba(201,168,76,0.15);color:var(--gold);}
+.status-dot{width:6px;height:6px;border-radius:50%;}
+.status-booked .status-dot{background:#4ade80;}
+.status-cancelled .status-dot{background:var(--crimson-bright);}
+.status-pending .status-dot{background:var(--gold);}
+.empty-state{text-align:center;padding:6rem 2rem;}
+.empty-icon{font-size:4rem;margin-bottom:1.5rem;opacity:0.2;}
+.empty-title{font-family:'Cinzel Decorative',serif;font-size:1.4rem;margin-bottom:0.5rem;}
+.empty-text{color:var(--text-dim);margin-bottom:2rem;font-size:0.9rem;}
+.loading-wrap{text-align:center;padding:6rem 2rem;}
+.spinner{width:50px;height:50px;border:2px solid rgba(220,20,60,0.2);
+  border-top-color:var(--crimson-bright);border-radius:50%;
+  animation:spin 0.8s linear infinite;margin:0 auto 1.2rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;top:1.5rem;right:1.5rem;z-index:9999;
+  padding:0.9rem 1.4rem;background:rgba(6,0,12,0.95);
+  border:1px solid var(--gold);border-left:3px solid var(--gold);
+  font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--gold);
+  box-shadow:0 0 30px rgba(201,168,76,0.3);
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+  opacity:0;transform:translateY(-10px);transition:all 0.4s ease;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.3s ease;}
+.modal-overlay.active{opacity:1;pointer-events:all;}
+.slot-modal{
+  background:linear-gradient(180deg,#0d060f 0%,#160b18 100%);
+  border:1px solid rgba(220,20,60,0.35);
+  width:420px;max-width:92vw;
+  padding:1.8rem 2rem 2rem;
+  position:relative;
+  box-shadow:0 0 60px rgba(220,20,60,0.2),0 25px 60px rgba(0,0,0,0.9);
+  transform:scale(0.95);transition:transform 0.3s ease;
+}
+.slot-modal::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--crimson-bright),var(--gold-bright),var(--crimson-bright),transparent);
+  opacity:0.7;}
+.modal-overlay.active .slot-modal{transform:scale(1);}
+.modal-close{position:absolute;top:0.9rem;right:1rem;background:none;border:none;
+  color:var(--text-dim);font-size:1.1rem;cursor:pointer;transition:all 0.2s;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.modal-close:hover{color:var(--crimson-bright);background:rgba(220,20,60,0.1);}
+.modal-title{font-family:'Cinzel Decorative',serif;font-size:1rem;font-weight:700;
+  text-align:center;margin-bottom:1.3rem;letter-spacing:0.06em;
+  background:linear-gradient(90deg,var(--crimson-bright),var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.detail-row{display:flex;justify-content:space-between;align-items:center;
+  padding:0.4rem 0;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:0.3rem;}
+.detail-label{font-family:'Cinzel',serif;font-size:0.68rem;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--text-dim);}
+.detail-value{color:var(--text-primary);font-weight:600;font-size:0.9rem;text-align:right;}
+.detail-value.gold{color:var(--gold-bright);}
+.reschedule-section{margin-top:1.2rem;padding-top:1rem;border-top:1px solid rgba(220,20,60,0.2);}
+.reschedule-label{display:block;font-family:'Cinzel',serif;font-size:0.62rem;
+  letter-spacing:0.2em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:0.6rem;}
+.reschedule-input{width:100%;padding:0.72rem 1rem;background:#0a0010;
+  border:1px solid rgba(220,20,60,0.25);color:var(--text-primary);
+  font-family:'Rajdhani',sans-serif;font-size:0.9rem;outline:none;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  transition:border-color 0.3s;-webkit-text-fill-color:var(--text-primary);
+  -webkit-box-shadow:0 0 0 1000px #0a0010 inset;}
+.reschedule-input:focus{border-color:var(--crimson-bright);box-shadow:0 0 14px rgba(220,20,60,0.2);}
+.reschedule-input::-webkit-calendar-picker-indicator{filter:invert(0.5) sepia(1) saturate(3) hue-rotate(320deg);cursor:pointer;}
+
+.weekday-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:1rem;}
+.weekday-btn{
+  padding:0.6rem 0.2rem;font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:600;
+  text-align:center;border:1px solid rgba(220,20,60,0.25);background:#0a0010;
+  color:var(--text-dim);cursor:pointer;transition:all 0.2s;border-radius:3px;
+}
+.weekday-btn:hover:not(.old-day):not(.new-day){border-color:var(--crimson-bright);color:var(--text-primary);}
+.weekday-btn.old-day{background:rgba(220,20,60,0.3);border-color:var(--crimson-bright);color:var(--crimson-bright);cursor:default;}
+.weekday-btn.new-day{background:rgba(124,58,237,0.35);border-color:#8b5cf6;color:#c4b5fd;}
+.weekday-btn.selected-new{background:rgba(124,58,237,0.6);border-color:#a78bfa;color:#fff;box-shadow:0 0 12px rgba(139,92,246,0.4);}
+.weekday-legend{display:flex;gap:1.2rem;justify-content:center;margin-bottom:0.8rem;font-size:0.6rem;}
+.weekday-legend span{display:flex;align-items:center;gap:5px;}
+.legend-old{width:10px;height:10px;background:rgba(220,20,60,0.3);border:1px solid var(--crimson-bright);display:inline-block;border-radius:2px;}
+.legend-new{width:10px;height:10px;background:rgba(124,58,237,0.35);border:1px solid #8b5cf6;display:inline-block;border-radius:2px;}
+
+.modal-actions{display:flex;gap:0.8rem;margin-top:1.2rem;}
+.modal-btn{flex:1;padding:0.78rem;border:none;font-family:'Cinzel',serif;
+  font-size:0.62rem;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;
+  cursor:pointer;transition:all 0.25s;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);}
+.btn-reschedule{background:linear-gradient(135deg,#5b21b6,#7c3aed);color:#fff;}
+.btn-reschedule:hover{background:linear-gradient(135deg,#7c3aed,#8b5cf6);
+  box-shadow:0 0 20px rgba(124,58,237,0.5);transform:translateY(-1px);}
+.btn-delete{background:linear-gradient(135deg,var(--crimson-dark),var(--crimson));color:var(--text-primary);}
+.btn-delete:hover{background:linear-gradient(135deg,var(--crimson),var(--crimson-bright));
+  box-shadow:0 0 20px rgba(220,20,60,0.5);transform:translateY(-1px);}
+.delete-modal{background:linear-gradient(180deg,#0d060f 0%,#160b18 100%);
+  border:1px solid rgba(220,20,60,0.35);width:360px;max-width:92vw;
+  padding:2rem;position:relative;
+  box-shadow:0 0 60px rgba(220,20,60,0.2),0 25px 60px rgba(0,0,0,0.9);
+  transform:scale(0.95);transition:transform 0.3s ease;}
+.delete-modal::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--crimson-bright),transparent);opacity:0.7;}
+.modal-overlay.active .delete-modal{transform:scale(1);}
+.delete-modal-icon{font-size:2.5rem;text-align:center;margin-bottom:0.8rem;
+  filter:drop-shadow(0 0 12px var(--crimson-glow));}
+.delete-modal-title{font-family:'Cinzel Decorative',serif;font-size:1rem;font-weight:700;
+  color:var(--crimson-bright);margin-bottom:0.7rem;letter-spacing:0.04em;text-align:center;}
+.delete-modal-text{font-size:0.85rem;color:var(--text-dim);line-height:1.6;
+  margin-bottom:1.6rem;text-align:center;}
+.delete-modal-actions{display:flex;gap:0.8rem;}
+.delete-modal-btn{flex:1;padding:0.8rem;border:none;font-family:'Cinzel',serif;
+  font-size:0.62rem;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;
+  cursor:pointer;transition:all 0.25s;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);}
+.delete-confirm-btn{background:linear-gradient(135deg,var(--crimson-dark),var(--crimson));
+  color:var(--text-primary);}
+.delete-confirm-btn:hover{background:linear-gradient(135deg,var(--crimson),var(--crimson-bright));
+  box-shadow:0 0 25px rgba(220,20,60,0.5);transform:translateY(-1px);}
+.delete-cancel-btn{background:transparent;color:var(--text-secondary);
+  border:1px solid rgba(220,20,60,0.3);}
+.delete-cancel-btn:hover{background:rgba(220,20,60,0.08);color:var(--text-primary);}
+.holiday-modal{background:linear-gradient(180deg,#0d060f 0%,#160b18 100%);
+  border:1px solid rgba(201,168,76,0.4);width:360px;max-width:92vw;
+  padding:2rem;position:relative;
+  box-shadow:0 0 60px rgba(201,168,76,0.15),0 25px 60px rgba(0,0,0,0.9);
+  transform:scale(0.95);transition:transform 0.3s ease;}
+.holiday-modal::before{content:'';position:absolute;top:0;left:15%;right:15%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold-bright),transparent);opacity:0.7;}
+.modal-overlay.active .holiday-modal{transform:scale(1);}
+.holiday-modal-icon{font-size:2.5rem;text-align:center;margin-bottom:0.8rem;}
+.holiday-modal-title{font-family:'Cinzel Decorative',serif;font-size:1rem;font-weight:700;
+  color:var(--gold-bright);margin-bottom:0.5rem;letter-spacing:0.04em;text-align:center;}
+.holiday-modal-name{font-family:'Cinzel',serif;font-size:0.8rem;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--crimson-bright);text-align:center;margin-bottom:0.7rem;}
+.holiday-modal-text{font-size:0.85rem;color:var(--text-dim);line-height:1.6;
+  margin-bottom:1.6rem;text-align:center;}
+.holiday-modal-btn{width:100%;padding:0.85rem;border:none;font-family:'Cinzel',serif;
+  font-size:0.65rem;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;
+  cursor:pointer;transition:all 0.25s;
+  background:linear-gradient(135deg,var(--crimson-dark),var(--crimson));
+  color:var(--text-primary);box-shadow:0 0 20px rgba(220,20,60,0.3);
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);}
+.holiday-modal-btn:hover{background:linear-gradient(135deg,var(--crimson),var(--crimson-bright));
+  box-shadow:0 0 35px rgba(220,20,60,0.5);}
+.hidden{display:none !important;}
+@media(max-width:900px){
+  .sidebar{position:fixed;left:-100%;transition:left 0.3s;z-index:100;}
+  .sidebar.open{left:0;}
+  .bookings-table th,.bookings-table td{padding:0.8rem 1rem;font-size:0.8rem;}
+}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(220,20,60,0.3);}
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="bg-canvas"></div>
+<div class="embers" id="embers"></div>
+<div class="toast" id="toast"></div>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="s-icon">♟</span>
+    <span class="s-title">ChessMonk</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item" onclick="navigate('dashboard.html')">
+      <span class="n-icon">⚔</span> Dashboard
+    </div>
+    <div class="nav-section-label" style="margin-top:0.5rem;">Bookings</div>
+    <div class="nav-item active open" id="bookings-nav" onclick="toggleBookings()">
+      <span class="n-icon">📅</span> Bookings
+      <span class="n-arrow">▼</span>
+    </div>
+    <div class="nav-sub open" id="bookings-sub">
+      <div class="nav-sub-item" style="color:var(--gold);">
+        <span class="dot"></span> View Bookings
+      </div>
+      <div class="nav-sub-item" onclick="navigate('book-tournament.html')">
+        <span class="dot"></span> Book Tournament
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="logout-btn" onclick="logout()">⚔ &nbsp;Retreat from Realm</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="welcome-text">
+      <h2>My <span>Tournament Slots</span></h2>
+      <p>⬦ Click on any slot to view, reschedule or delete</p>
+    </div>
+  </div>
+
+  <div class="table-card" id="bookingsCard">
+    <div class="table-header">
+      <div class="table-title">Active Bookings</div>
+      <div class="table-sub" id="bookingCount">Loading your tournament slots...</div>
+    </div>
+    <div class="loading-wrap" id="loadingState">
+      <div class="spinner"></div>
+      <div style="font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--text-dim);">
+        Summoning your bookings...
+      </div>
+    </div>
+    <div class="empty-state hidden" id="emptyState">
+      <div class="empty-icon">⚔</div>
+      <div class="empty-title">No Active Bookings</div>
+      <div class="empty-text">Your tournament slots will appear here once you make a booking</div>
+      <button class="logout-btn" style="width:auto;padding:0.8rem 2rem;" onclick="navigate('book-tournament.html')">
+        ⚔ &nbsp; Book Your First Slot
+      </button>
+    </div>
+    <table class="bookings-table hidden" id="bookingsTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Plan</th>
+          <th>Price</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="bookingsBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<div class="modal-overlay" id="slotModalOverlay" onclick="closeModalOutside(event)">
+  <div class="slot-modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeSlotModal()">✕</button>
+    <div class="modal-title">Slot Details</div>
+    <div class="detail-row">
+      <span class="detail-label">Date</span>
+      <span class="detail-value" id="modalDate">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Time</span>
+      <span class="detail-value" id="modalTime">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Plan</span>
+      <span class="detail-value" id="modalPlan">—</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Price</span>
+      <span class="detail-value gold" id="modalPrice">—</span>
+    </div>
+    <div class="detail-row" style="border-bottom:none;">
+      <span class="detail-label">Status</span>
+      <span class="detail-value" id="modalStatus">—</span>
+    </div>
+
+    <div class="reschedule-section" id="normalReschedule">
+      <label class="reschedule-label">Reschedule to New Date</label>
+      <input type="date" class="reschedule-input" id="rescheduleDate" onchange="checkHolidayOnChange()"/>
+    </div>
+
+    <div class="reschedule-section hidden" id="premiumReschedule">
+      <label class="reschedule-label">Reschedule Premium Slots</label>
+      <div class="weekday-legend">
+        <span><span class="legend-old"></span> Current Days</span>
+        <span><span class="legend-new"></span> New Days</span>
+      </div>
+      <div class="weekday-grid" id="weekdayGrid">
+        <div class="weekday-btn" data-day="0" onclick="toggleWeekday(this)">Sun</div>
+        <div class="weekday-btn" data-day="1" onclick="toggleWeekday(this)">Mon</div>
+        <div class="weekday-btn" data-day="2" onclick="toggleWeekday(this)">Tue</div>
+        <div class="weekday-btn" data-day="3" onclick="toggleWeekday(this)">Wed</div>
+        <div class="weekday-btn" data-day="4" onclick="toggleWeekday(this)">Thu</div>
+        <div class="weekday-btn" data-day="5" onclick="toggleWeekday(this)">Fri</div>
+        <div class="weekday-btn" data-day="6" onclick="toggleWeekday(this)">Sat</div>
+      </div>
+      <div style="font-size:0.7rem;color:var(--text-dim);text-align:center;margin-bottom:0.5rem;">
+        Select exactly 2 weekdays for your 8 premium slots
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn btn-reschedule" onclick="rescheduleBooking()">Reschedule</button>
+      <button class="modal-btn btn-delete" onclick="openDeleteModal()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModalOverlay" onclick="closeDeleteModalOutside(event)">
+  <div class="delete-modal" onclick="event.stopPropagation()">
+    <div class="delete-modal-icon">⚔</div>
+    <div class="delete-modal-title">Delete This Slot?</div>
+    <div class="delete-modal-text">
+      This action cannot be undone. The slot will be permanently removed from your tournament calendar.
+    </div>
+    <div class="delete-modal-actions">
+      <button class="delete-modal-btn delete-cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+      <button class="delete-modal-btn delete-confirm-btn" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="holidayModalOverlay" onclick="closeHolidayModal()">
+  <div class="holiday-modal" onclick="event.stopPropagation()">
+    <div class="holiday-modal-icon">🎉</div>
+    <div class="holiday-modal-title">⚔ Holiday Alert</div>
+    <div class="holiday-modal-name" id="holidayModalName">—</div>
+    <div class="holiday-modal-text">
+      This date falls on a public holiday. Booking on holidays is not available — please choose a different date for your tournament slot.
+    </div>
+    <button class="holiday-modal-btn" onclick="closeHolidayModal()">⚔ &nbsp; Choose Another Date</button>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem('access_token');
+if(!token) window.location.href = 'index.html';
+
+const BASE_URL = 'http://127.0.0.1:8000/api';
+let currentBookingId = null;
+let currentBookingTimeSlot = null;
+let currentBookingPlan = null;
+let currentBookingDate = null;
+let selectedNewWeekdays = [];
+let allBookingsData = [];
+
+const HOLIDAYS = {
+  '2025-01-01':'New Year','2025-01-14':'Makar Sankranti','2025-01-26':'Republic Day',
+  '2025-03-14':'Holi','2025-03-30':'Ugadi / Gudi Padwa','2025-04-14':'Dr. Ambedkar Jayanti',
+  '2025-04-18':'Good Friday','2025-05-12':'Buddha Purnima','2025-08-15':'Independence Day',
+  '2025-08-16':'Janmashtami','2025-10-02':'Gandhi Jayanti / Dussehra',
+  '2025-10-20':'Diwali','2025-10-21':'Diwali','2025-11-05':'Guru Nanak Jayanti',
+  '2025-12-25':'Christmas','2026-01-01':'New Year','2026-01-26':'Republic Day',
+  '2026-03-03':'Holika Dahana','2026-03-04':'Holi','2026-03-19':'Ugadi / Gudi Padwa',
+  '2026-03-20':'Jamat Ul-Vida','2026-03-21':'Ramzan Id','2026-04-14':'Dr. Ambedkar Jayanti',
+  '2026-08-15':'Independence Day','2026-10-02':'Gandhi Jayanti','2026-12-25':'Christmas',
+};
+
+const ec = document.getElementById('embers');
+for(let i=0;i<35;i++){
+  const e=document.createElement('div');
+  e.className='ember '+(Math.random()>0.6?'gold':'red');
+  e.style.setProperty('--dur',(7+Math.random()*12)+'s');
+  e.style.setProperty('--delay',(Math.random()*15)+'s');
+  e.style.setProperty('--left',(Math.random()*100)+'%');
+  e.style.setProperty('--drift',((Math.random()-0.5)*100)+'px');
+  ec.appendChild(e);
+}
+
+function showToast(msg, duration=3000){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+function toggleBookings(){
+  document.getElementById('bookings-nav').classList.toggle('open');
+  document.getElementById('bookings-sub').classList.toggle('open');
+}
+function navigate(page){ window.location.href = page; }
+function logout(){ localStorage.clear(); window.location.href = 'index.html'; }
+
+function formatDate(dateStr){
+  if(!dateStr) return '—';
+  return new Date(dateStr+'T00:00:00')
+    .toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+}
+
+function formatTime(timeStr){
+  if(!timeStr) return '—';
+  const [h,m]=timeStr.split(':');
+  const hr=parseInt(h);
+  return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}`;
+}
+
+function getStatusBadge(status){
+  const s=(status||'').toLowerCase();
+  if(s==='booked'||s==='confirmed'||s==='active')
+    return '<span class="status-badge status-booked"><span class="status-dot"></span>Booked</span>';
+  if(s==='cancelled'||s==='canceled')
+    return '<span class="status-badge status-cancelled"><span class="status-dot"></span>Cancelled</span>';
+  return '<span class="status-badge status-pending"><span class="status-dot"></span>Pending</span>';
+}
+
+function getTodayStr(){
+  const t=new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+
+function checkHolidayOnChange(){
+  const val = document.getElementById('rescheduleDate').value;
+  if(!val) return;
+  if(HOLIDAYS[val]){
+    document.getElementById('holidayModalName').textContent = HOLIDAYS[val];
+    document.getElementById('holidayModalOverlay').classList.add('active');
+    document.getElementById('rescheduleDate').value = '';
+  }
+}
+
+function closeHolidayModal(){
+  document.getElementById('holidayModalOverlay').classList.remove('active');
+}
+
+function getDayOfWeek(dateStr){
+  return new Date(dateStr + 'T00:00:00').getDay();
+}
+
+function toggleWeekday(btn){
+  const day = parseInt(btn.dataset.day);
+  if(btn.classList.contains('old-day')) return;
+
+  if(btn.classList.contains('selected-new')){
+    btn.classList.remove('selected-new');
+    btn.classList.add('new-day');
+    selectedNewWeekdays = selectedNewWeekdays.filter(d => d !== day);
+  } else if(btn.classList.contains('new-day')){
+    btn.classList.remove('new-day');
+    selectedNewWeekdays = selectedNewWeekdays.filter(d => d !== day);
+  } else {
+    if(selectedNewWeekdays.length >= 2){
+      showToast('⚔ Select only 2 weekdays');
+      return;
+    }
+    btn.classList.add('selected-new');
+    selectedNewWeekdays.push(day);
+  }
+}
+
+function renderWeekdayGrid(oldDateStr){
+  selectedNewWeekdays = [];
+  const oldDay = getDayOfWeek(oldDateStr);
+  const btns = document.querySelectorAll('#weekdayGrid .weekday-btn');
+  btns.forEach(btn => {
+    const day = parseInt(btn.dataset.day);
+    btn.className = 'weekday-btn';
+    if(day === oldDay){
+      btn.classList.add('old-day');
+    }
+  });
+}
+
+function openSlotModal(){
+  document.getElementById('slotModalOverlay').classList.add('active');
+  const today = getTodayStr();
+  document.getElementById('rescheduleDate').min = today;
+}
+
+function closeSlotModal(){
+  document.getElementById('slotModalOverlay').classList.remove('active');
+  currentBookingId = null;
+  currentBookingTimeSlot = null;
+  currentBookingPlan = null;
+  currentBookingDate = null;
+  selectedNewWeekdays = [];
+  document.getElementById('rescheduleDate').value = '';
+  document.getElementById('normalReschedule').classList.remove('hidden');
+  document.getElementById('premiumReschedule').classList.add('hidden');
+}
+
+function closeModalOutside(e){
+  if(e.target===document.getElementById('slotModalOverlay')) closeSlotModal();
+}
+
+function openDeleteModal(){
+  document.getElementById('deleteModalOverlay').classList.add('active');
+}
+
+function closeDeleteModal(){
+  document.getElementById('deleteModalOverlay').classList.remove('active');
+}
+
+function closeDeleteModalOutside(e){
+  if(e.target===document.getElementById('deleteModalOverlay')) closeDeleteModal();
+}
+
+function getNextDatesForWeekdays(weekdays, count){
+  const dates = [];
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let current = new Date(today);
+  current.setDate(current.getDate() + 1);
+
+  while(dates.length < count){
+    const dow = current.getDay();
+    if(weekdays.includes(dow)){
+      const y = current.getFullYear();
+      const m = String(current.getMonth()+1).padStart(2,'0');
+      const d = String(current.getDate()).padStart(2,'0');
+      const dateStr = `${y}-${m}-${d}`;
+      if(!HOLIDAYS[dateStr]){
+        dates.push(dateStr);
+      }
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
+async function loadBookings(){
+  const loadingEl=document.getElementById('loadingState');
+  const emptyEl=document.getElementById('emptyState');
+  const tableEl=document.getElementById('bookingsTable');
+  const tbody=document.getElementById('bookingsBody');
+  const countEl=document.getElementById('bookingCount');
+
+  try{
+    const res=await fetch(`${BASE_URL}/bookings/`,{
+      headers:{'Authorization':`Bearer ${token}`}
+    });
+    if(res.status===401){ logout(); return; }
+    if(!res.ok) throw new Error('Failed to fetch');
+
+    const data=await res.json();
+    let raw=[];
+    if(Array.isArray(data)) raw=data;
+    else if(data.bookings) raw=data.bookings;
+    else if(data.results) raw=data.results;
+    else if(data.data) raw=data.data;
+
+    allBookingsData = raw;
+    const rows=[];
+    raw.forEach(b=>{
+      const rawDate = b.date||b.booking_date||'';
+      const rawTime = b.time_slot||b.time||'';
+      const plan    = (b.plan||'').toLowerCase();
+      const price   = parseFloat(b.price||0);
+
+      if(plan==='custom'||plan==='monthly_premium'){
+        const slotCount = b.slots_count||(plan==='monthly_premium'?8:1);
+        const slotPrice = plan==='monthly_premium' ? Math.round(price/slotCount) : 300;
+        for(let i=0;i<slotCount;i++){
+          rows.push({
+            id: b.id,
+            slotIndex: i+1,
+            totalSlots: slotCount,
+            date: rawDate,
+            time: rawTime,
+            plan: plan,
+            price: slotPrice,
+            status: b.status||'',
+            isMulti: true,
+          });
+        }
+      } else {
+        rows.push({
+          id: b.id,
+          slotIndex: null,
+          totalSlots: null,
+          date: rawDate,
+          time: rawTime,
+          plan: plan,
+          price: price,
+          status: b.status||'',
+          isMulti: false,
+        });
+      }
+    });
+
+    loadingEl.classList.add('hidden');
+
+    if(rows.length===0){
+      emptyEl.classList.remove('hidden');
+      countEl.textContent='No tournament slots booked yet';
+      return;
+    }
+
+    countEl.textContent=`${rows.length} tournament slot${rows.length>1?'s':''}`;
+
+    tbody.innerHTML=rows.map(r=>{
+      const planLabel = r.plan==='monthly_premium' ? 'Monthly Premium'
+        : r.plan.charAt(0).toUpperCase()+r.plan.slice(1);
+      const slotLabel = r.isMulti ? `${planLabel} <span style="color:var(--text-dim);font-size:0.78rem;">(Slot ${r.slotIndex}/${r.totalSlots})</span>` : planLabel;
+      return `<tr onclick="viewBooking(${r.id},'${r.date}','${r.time}','${r.plan}','${r.price}','${r.status}')">
+        <td>${formatDate(r.date)}</td>
+        <td>${formatTime(r.time)}</td>
+        <td>${slotLabel}</td>
+        <td style="color:var(--gold-bright);font-weight:600;">₹${r.price.toLocaleString('en-IN')}</td>
+        <td>${getStatusBadge(r.status)}</td>
+      </tr>`;
+    }).join('');
+
+    tableEl.classList.remove('hidden');
+
+  } catch(err){
+    console.error(err);
+    loadingEl.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+    document.querySelector('.empty-title').textContent='Failed to Load';
+    document.querySelector('.empty-text').textContent='Could not fetch your bookings. Please try again.';
+    showToast('⚔ Failed to summon bookings');
+  }
+}
+
+function viewBooking(id, date, time, plan, price, status){
+  currentBookingId = id;
+  currentBookingTimeSlot = time;
+  currentBookingPlan = plan;
+  currentBookingDate = date;
+
+  document.getElementById('modalDate').textContent = formatDate(date);
+  document.getElementById('modalTime').textContent = formatTime(time);
+
+  const planLabel = plan==='monthly_premium' ? 'Monthly Premium'
+    : plan.charAt(0).toUpperCase()+plan.slice(1);
+  document.getElementById('modalPlan').textContent = planLabel;
+  document.getElementById('modalPrice').textContent = '₹'+parseFloat(price||0).toLocaleString('en-IN');
+
+  const statusEl = document.getElementById('modalStatus');
+  const s=(status||'').toLowerCase();
+  if(s==='booked'||s==='confirmed'||s==='active'){
+    statusEl.textContent='BOOKED'; statusEl.style.color='#4ade80';
+  } else if(s==='cancelled'||s==='canceled'){
+    statusEl.textContent='CANCELLED'; statusEl.style.color='var(--crimson-bright)';
+  } else {
+    statusEl.textContent='PENDING'; statusEl.style.color='var(--gold)';
+  }
+
+  if(plan === 'monthly_premium'){
+    document.getElementById('normalReschedule').classList.add('hidden');
+    document.getElementById('premiumReschedule').classList.remove('hidden');
+    renderWeekdayGrid(date);
+  } else {
+    document.getElementById('normalReschedule').classList.remove('hidden');
+    document.getElementById('premiumReschedule').classList.add('hidden');
+  }
+
+  openSlotModal();
+}
+
+async function rescheduleBooking(){
+  if(!currentBookingId){ showToast('⚔ No booking selected'); return; }
+
+  if(currentBookingPlan === 'monthly_premium'){
+    if(selectedNewWeekdays.length !== 2){
+      showToast('⚔ Select exactly 2 weekdays');
+      return;
+    }
+    const newDates = getNextDatesForWeekdays(selectedNewWeekdays, 8);
+    const firstDate = newDates[0];
+    try{
+      const res = await fetch(`${BASE_URL}/bookings/${currentBookingId}/reschedule/`,{
+        method:'PATCH',
+        headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+        body: JSON.stringify({date:firstDate, time_slot:currentBookingTimeSlot, weekdays:selectedNewWeekdays})
+      });
+      if(res.status===401){ logout(); return; }
+      const data = await res.json().catch(()=>({}));
+      if(res.ok){
+        showToast('⚔ Premium slots rescheduled successfully!');
+        closeSlotModal();
+        loadBookings();
+      } else {
+        showToast('⚔ '+(data.detail||data.error||Object.values(data).flat().join(' ')||'Reschedule failed'));
+      }
+    } catch(err){
+      console.error(err);
+      showToast('⚔ Network error. Is Django running?');
+    }
+    return;
+  }
+
+  const newDate = document.getElementById('rescheduleDate').value;
+  if(!newDate){ showToast('⚔ Choose a new date, warrior'); return; }
+
+  if(HOLIDAYS[newDate]){
+    document.getElementById('holidayModalName').textContent = HOLIDAYS[newDate];
+    document.getElementById('holidayModalOverlay').classList.add('active');
+    document.getElementById('rescheduleDate').value = '';
+    return;
+  }
+
+  const today = getTodayStr();
+  if(newDate <= today){ showToast('⚔ Choose a future date, warrior'); return; }
+
+  try{
+    const res = await fetch(`${BASE_URL}/bookings/${currentBookingId}/reschedule/`,{
+      method:'PATCH',
+      headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+      body: JSON.stringify({date:newDate, time_slot:currentBookingTimeSlot})
+    });
+    if(res.status===401){ logout(); return; }
+    const data = await res.json().catch(()=>({}));
+    if(res.ok){
+      showToast('⚔ Slot rescheduled successfully!');
+      closeSlotModal();
+      loadBookings();
+    } else {
+      showToast('⚔ '+(data.detail||data.error||Object.values(data).flat().join(' ')||'Reschedule failed'));
+    }
+  } catch(err){
+    console.error(err);
+    showToast('⚔ Network error. Is Django running?');
+  }
+}
+
+async function confirmDelete(){
+  if(!currentBookingId){ showToast('⚔ No booking selected'); return; }
+  closeDeleteModal();
+  try{
+    const res = await fetch(`${BASE_URL}/bookings/${currentBookingId}/`,{
+      method:'DELETE',
+      headers:{'Authorization':`Bearer ${token}`}
+    });
+    if(res.status===401){ logout(); return; }
+    if(res.ok||res.status===204){
+      showToast('🔥 Slot deleted from the realm!');
+      closeSlotModal();
+      setTimeout(loadBookings, 500);
+    } else {
+      const data = await res.json().catch(()=>({}));
+      showToast('⚔ '+(data.detail||data.error||'Delete failed'));
+    }
+  } catch(err){
+    console.error(err);
+    showToast('⚔ Network error. Is Django running?');
+  }
+}
+
+loadBookings();
+</script>
+</body>
+</html>

@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ei=@2^k5@g9v+h&0wk_t2qa7(=q7uvv27dp&0xbptosa$@4iv8'
+SECRET_KEY = 'django-insecure-NEW_RANDOM_STRING_HERE'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -121,8 +121,8 @@ SIMPLE_JWT = {
 CORS_ALLOW_ALL_ORIGINS = True
 
  
-RAZORPAY_KEY_ID     = 'rzp_test_SoAC0cB3XSyDOC'   # replace with your key
-RAZORPAY_KEY_SECRET = '1blNH5bE6CTa8SgQ86p7RDVy' 
+RAZORPAY_KEY_ID     = 'your_new_key_id_here'  # replace with your key
+RAZORPAY_KEY_SECRET = 'your_new_secret_here' 
 
 
 

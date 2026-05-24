@@ -104,6 +104,12 @@ chessmonk/
 │       ├── book-tournament.html
 │       ├── payment-success.html
 │       └── view-bookings.html
+├── screenshots/
+│   ├── login.jpeg
+│   ├── dashboard.jpeg
+│   ├── booking.jpeg
+│   ├── receipt.jpeg
+│   └── bookings.jpeg
 ├── media/
 └── manage.py
 ```
@@ -134,6 +140,8 @@ python manage.py runserver
 ```
 
 Open `frontend/assets/index.html` with **Live Server** in VS Code.
+
+> Make sure Django is running at `http://127.0.0.1:8000` before using the frontend.
 
 ---
 
@@ -170,13 +178,17 @@ POST   /api/bookings/confirm-payment/
 
 ## 📸 Screenshots
 
-| Login | Dashboard | Book Tournament |
-|-------|-----------|-----------------|
-| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) | ![Booking](screenshots/booking.png) |
+| Login | Dashboard |
+|-------|-----------|
+| ![Login](screenshots/login.jpeg) | ![Dashboard](screenshots/dashboard.jpeg) |
 
-| Payment Receipt | View Bookings |
-|-----------------|---------------|
-| ![Receipt](screenshots/receipt.png) | ![Bookings](screenshots/bookings.png) |
+| Book Tournament | Payment Receipt |
+|-----------------|-----------------|
+| ![Booking](screenshots/booking.jpeg) | ![Receipt](screenshots/receipt.jpeg) |
+
+| View Bookings |
+|---------------|
+| ![Bookings](screenshots/bookings.jpeg) |
 
 ---
 

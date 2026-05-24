@@ -108,7 +108,6 @@ REST_FRAMEWORK = {
     ),
 }
 
-# ─── SIMPLE JWT SETTINGS ──────────────────────────────────────────────────────
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),   # Access token expires in 60 min
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),      # Refresh token lasts 7 days
